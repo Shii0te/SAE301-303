@@ -3,7 +3,7 @@
 
 commande a utiliser 
 
-enregistrer vos modifications :
+#enregistrer vos modifications :
 
 git add --all 
 
@@ -13,11 +13,11 @@ git push
 
 
 
-pour recuperer un fichier modifié par quelqu'un d'autre en meme temps :
+#pour recuperer un fichier modifié par quelqu'un d'autre en meme temps :
 
 git pull
 
-si les fichiers sont differents et que vous souhaitez les modifier : 
+#si les fichiers sont differents et que vous souhaitez les modifier : 
 
 git merge
 
