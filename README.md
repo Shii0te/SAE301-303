@@ -5,9 +5,9 @@
 
 ### enregistrer vos modifications :
 
-git add --all 
+git add .
 
-git commit 
+git commit -m "nom de la maj"
 
 git push
 
