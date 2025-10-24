@@ -1,0 +1,20 @@
+# Node
+node_modules/
+npm-debug.log*
+dist/
+coverage/
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# OS
+.DS_Store
+
+# Données lourdes / temporaires
+data/*.csv
+data/*.parquet
+data/*.jsonl
+
+# Env
+.env
