@@ -18,4 +18,27 @@ app.get("/", (_, res) => {
 
 app.get("/api/health", (_, res) => res.json({ ok: true }));
 
+app.get("/api/master/:id/:annee", (req, res) => {
+  const { id, annee } = req.params;
+  res.json({
+    formation_id: id,
+    annee: Number(annee),
+    identite: {
+      etablissement: "Université Exemple",
+      mention: "Master Ex.",
+      parcours: "Parcours A",
+      academie: "Lyon",
+      region: "Auvergne-Rhône-Alpes",
+      discipline: "Informatique"
+    },
+    capacite: 120,
+    stats: {
+      candidatures: { n_can: 850, n_prop: 320, n_acc: 110, rang_dernier: 278 },
+      profil_admis: { L3: 68, LP: 22, Master: 8, Autre: 12, femmes: 57 },
+      mobilite: { etab: 30, acad: 44, region: 60 }
+    }
+  });
+});
+
+
 app.listen(PORT, () => console.log(`✅ http://localhost:${PORT}`));

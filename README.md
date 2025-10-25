@@ -21,3 +21,6 @@ git pull
 
 git merge
 
+### pour lancer le serveur
+
+node serveur/index.js
