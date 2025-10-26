@@ -30,43 +30,61 @@
             if (!res.ok) throw new Error("Recherche impossible");
             return res.json();
         }
-        function setStatus(msg, type = "info") { const s = document.querySelector("#status"); s.textContent = msg; s.dataset.type = type; }
-
+    
+        function renderResults(arr, limit = 200) {
+            const box = document.querySelector("#results");
+            if (!arr.length) return box.innerHTML = "<p>Aucun résultat.</p>";
+    
+            const shown = arr.slice(0, limit);
+            box.innerHTML = shown.map(r => `
+              <div style="border:1px solid #eee;border-radius:10px;padding:10px;margin-bottom:8px">
+                <div><strong>${r.mention}</strong></div>
+                <div style="color:#666">${r.etab}</div>
+                <div style="font-size:12px;margin:4px 0">ID: <code>${r.id}</code></div>
+                <div style="display:flex;gap:8px;margin-top:6px">
+                  <a href="/?id=${encodeURIComponent(r.id)}" style="text-decoration:none">
+                    <button>Ouvrir dans le viewer</button>
+                  </a>
+                  <button data-id="${r.id}" class="copy">Copier l’ID</button>
+                </div>
+              </div>
+            `).join("");
+    
+            box.querySelectorAll(".copy").forEach(btn => {
+                btn.addEventListener("click", async () => {
+                    await navigator.clipboard.writeText(btn.dataset.id);
+                    setStatus("ID copié ✔️");
+                });
+            });
+        }
+    
+        function setStatus(msg, type = "info") {
+            const s = document.querySelector("#status");
+            s.textContent = msg;
+            s.dataset.type = type;
+        }
+    
+        // --- bouton recherche ---
         document.querySelector("#btnSearch").addEventListener("click", async () => {
             const q = (document.querySelector("#q").value || "").trim();
             const annee = document.querySelector("#annee").value;
-            if (!q) return setStatus("Tape un mot-clé (mention ou établissement).", "error");
-            setStatus("Recherche…", "loading");
-            try {
-                const arr = await search(q, annee);
-                setStatus(`${arr.length} résultat(s).`);
-                const box = document.querySelector("#results");
-                box.innerHTML = arr.map(r => `
-          <div style="border:1px solid #eee;border-radius:10px;padding:10px;margin-bottom:8px">
-            <div><strong>${r.mention}</strong></div>
-            <div style="color:#666">${r.etab}</div>
-            <div style="font-size:12px;margin:4px 0">ID: <code>${r.id}</code></div>
-            <div style="display:flex;gap:8px;margin-top:6px">
-                <a href="/?id=${encodeURIComponent(r.id)}" style="text-decoration:none">
-                <button>Ouvrir dans le viewer</button>
-              </a>
-              <button data-id="${r.id}" class="copy">Copier l’ID</button>
-            </div>
-          </div>
-        `).join("");
-
-                // copy buttons
-                box.querySelectorAll(".copy").forEach(btn => {
-                    btn.addEventListener("click", async () => {
-                        await navigator.clipboard.writeText(btn.dataset.id);
-                        setStatus("ID copié dans le presse-papiers ✔️");
-                    });
-                });
-            } catch (e) {
-                setStatus(`Erreur: ${e.message}`, "error");
-            }
+            setStatus(q ? "Recherche…" : "Chargement complet…", "loading");
+            const arr = await search(q, annee);
+            setStatus(`${arr.length} résultat(s).`);
+            renderResults(arr, 200);
+        });
+    
+        // --- au chargement, on affiche la liste complète ---
+        window.addEventListener("DOMContentLoaded", async () => {
+            const annee = document.querySelector("#annee").value;
+            setStatus("Chargement complet…", "loading");
+            const arr = await search("", annee);
+            renderResults(arr, 200); // affiche les 200 premiers
+            setStatus(`${arr.length} résultat(s) trouvés. (affichés : 200)`);
         });
     </script>
+    
+
 </body>
 
 </html>
