@@ -38,8 +38,6 @@ Ce journal consigne, par date, l’avancement, les décisions et difficultés du
 
 **Objectif.** Poser l’architecture minimale et afficher une première fiche exemple.
 
-### Session de Travail 1
-
 **Faits réalisés.**
 
 - Initialisation du projet (Codespaces).
@@ -63,4 +61,60 @@ Ce journal consigne, par date, l’avancement, les décisions et difficultés du
 - Ajouter au JSON : `n_prop`, `rang_dernier`, “profil admis” (L3/LP/Master/Autre), part de femmes.
 - (Optionnel) UI : sélecteurs `formationId` et `année` + `VizManager.update()`.
 
----
+## 26 oct. 2025 — Intégration complète DataManager & outils
+
+**À noter :** Les objectifs du 25 octobre sont désormais atteints et validés le 26 octobre 2025.
+
+### Objectif
+
+Finaliser la connexion entre le backend (lecture CSV 2023/2024) et le front (affichage comparatif), tout en ajoutant la page d’outillage pour une facilité pour nous meme coté developement et en stabilisant les visualisations.
+
+**Faits réalisés.**
+
+**Côté serveur :**
+
+* Refonte complète du **DataManager** :
+  * Gestion des différences de structure entre 2023 et 2024.
+  * Mise en place d’un **cache mémoire** par année pour éviter les relectures multiple
+
+**Côté client :**
+
+* **tools.html** (pour nos recherches perso de masters) :
+  * Affichage automatique de la liste complète au chargement (50 masters).
+  * Recherche dynamique par mots-clés + sélecteur d’année.
+  * Bouton « Ouvrir dans le viewer » → renvoi direct vers `/index?id=...`.
+* **index.html** :
+  * Chargement automatique du master comparatif si `?id` présent.
+  * Interface épurée (un champ, un bouton, visualisation directe).
+* **VizManager.js** :
+  * Correction du chevauchement de texte (ajout marges adaptatives et tailles dynamiques) (affichages test - non définitifs).
+  * Harmonisation des espacements et labels.
+  * Résultat visuel clair et lisible sur toutes largeurs d’écran.
+
+### Problèmes rencontrés et solutions
+
+| Problème                                   | Analyse                                                                 | Solution                                                          |
+| ------------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| **Taux d’admission = 0**             | Colonnes `n_can` et `n_acc` non détectées (libellés différents) | Mapping par tokens + fusion PP/PC                                 |
+| **Aucune donnée 2023**               | ID =`ifc` non pris en compte                                          | Ajout de `ifc` à `ID_KEYS_CANDIDATES`                        |
+| **Recherche tools vide**              | `/api/search` ignorait `q=""`                                       | Activation du mode `allMode` + limite 50                        |
+| **Chevauchement des barres / textes** | Polices trop grandes, marges insuffisantes                              | Redimensionnement adaptatif + marges dynamiques                   |
+| **404 **`/api/master/...`                 | Mauvais ordre de routes Express                                         | Déclaration `/api/master/:id/:annee` avant `/api/master/:id` |
+
+### Résultats
+
+* L’application est **totalement fonctionnelle** : données 2023 et 2024 lisibles et comparables.
+* Les **visualisations** sont propres et lisibles.
+* La **page tools** permet désormais de tester et vérifier n’importe quelle formation rapidement.
+
+
+### **Autre décision prise – Suppression du module** `FilterManagement.js`
+
+Après analyse des besoins réel de la SAE, le module de filtres n’est **pas nécessaire**.
+L’objectif du projet étant de présenter **une fiche unique en comparatif 2023 <-> 2024**, il n’existe pas de système de recherche ni de filtrage dynamique attendu par le professeur.
+
+En conséquence, le module **`FilterManagement.js` a été** **supprimé** pour alléger l’architecture et clarifier le code.
+
+### Prochaines étapes
+
+* Ajouter les nouvelles visualisations choisis par le groupe.
