@@ -1,12 +1,53 @@
-body { font-family: system-ui, sans-serif; margin: 2rem; }
-#viz { margin-top: 1rem; }
-#status[data-type="loading"] { color: #555; }
-#status[data-type="error"]   { color: #b00020; font-weight: 600; }
+body {
+    font-family: system-ui, sans-serif;
+    margin: 2rem;
+    color: black;
+}
 
-.kpis { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:12px; margin: 12px 0; }
-.kpis > div { border:1px solid #eee; border-radius:10px; padding:12px; }
-.kpis span { display:block; font-size:12px; color:#666; }
-.kpis strong { font-size:22px; font-weight:700; }
+#viz {
+    margin-top: 1rem;
+}
 
-.header h2 { margin: 8px 0 0 0; }
-.header .sub { color:#666; font-size:13px; margin-top:4px; }
+#status[data-type="loading"] {
+    color: #555;
+}
+
+#status[data-type="error"] {
+    color: #b00020;
+    font-weight: 600;
+}
+
+.kpis {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 12px 0;
+}
+
+.kpis>div {
+    border: 1px solid #eee;
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.kpis span {
+    display: block;
+    font-size: 12px;
+    color: #666;
+}
+
+.kpis strong {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+
+.header h2 {
+    margin: 8px 0 0 0;
+}
+
+.header .sub {
+    color: #666;
+    font-size: 13px;
+    margin-top: 4px;
+}
