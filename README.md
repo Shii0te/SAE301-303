@@ -79,7 +79,8 @@ Le projet repose sur une architecture modulaire claire : ****serveur (API)** +**
 
 ![alt text](doc/schema1.png)
 
-**Orchestrator**
+### **Orchestrator**
+
 Rôle :
 
 * Cœur du système. Coordonne les appels entre les différents modules.
@@ -94,7 +95,8 @@ Méthode :
 4. Gestion du cache et de la persistance via CacheManager
 5. Interaction avec l’interface via UIManager
 
-**VizManager**
+### **VizManager**
+
 Rôle :
 
 * Génération et mise à jour des visualisations interactives.
@@ -109,7 +111,8 @@ Justification :
 * Sépare la logique de rendu visuel (visualisations d3.js, Plotly, etc.).
 * Facilite les futures extensions (nouveaux types de graphiques).
 
-**DataManager**
+### **DataManager**
+
 Rôle : Chargement, nettoyage et fusion des données hétérogènes (2023 / 2024 / insertion pro).
 
 Méthodes :
@@ -122,7 +125,8 @@ Justification :
 * Centralise la logique de lecture/normalisation pour éviter la duplication ailleurs.
 * Garantit la cohérence du référentiel de données.
 
-**FilterManager**
+### **FilterManager**
+
 Rôle :
 
 * Application des filtres choisis dans l’interface (année, région, discipline…).
@@ -136,7 +140,8 @@ Méthodes :
 * Demande à CacheManager les jeux de données actuels.
 * Renvoie les données filtrées au VizManager.
 
-**CacheManager**
+### **CacheManager**
+
 Rôle :
 
 * Gestion des états, données intermédiaires et performances.
@@ -155,7 +160,8 @@ Justification :
 * Évite de recharger ou recalculer inutilement les jeux de données.
 * Utile pour un tableau de bord réactif.
 
-**UIManager**
+### **UIManager**
+
 Rôle :
 
 * Gestion des interactions utilisateur et de la navigation entre vues.
@@ -185,13 +191,97 @@ Le but de cette version était avoir plusieurs vues (par année, région, discip
 
 ![alt text](doc/schema2.png)
 
+### **Orchestrator**
+
+**Rôle :**
+Cœur du système côté client. Coordonne la logique générale d’affichage et les appels aux modules du front.
+
+**Méthodes :**
+
+* `main()` → exécute la logique globale :
+  1. Récupère l’identifiant (`?id=`) dans l’URL.
+  2. Appelle`RESTManager.getFicheMaster()` pour charger les données via l’API.
+  3. Transmet la réponse à`VizManager` pour le rendu visuel.
+
+**Justification :**
+
+* Centralise le flux de la page sans dupliquer de logique ailleurs.
+* Assure la séparation entre ****accès aux données** (REST) et** **affichage** (Viz).
+* Structure légère adaptée à une**fiche unique** (pas de filtres ou états complexes).
+
+### **RESTManager**
+
+**Rôle :**
+Interface de communication entre le front et le backend.
+
+**Méthodes :**
+
+* `getFicheMaster(id)` → appelle`/api/master/:id` pour récupérer les données comparatives.
+* (Optionnel) **`getSearchResults(q, annee)` → utilisée uniquement dans** `tools.html` pour la recherche.
+
+**Justification :**
+
+* Sépare les appels réseau du reste de la logique.
+* Facilite la maintenance et le remplacement futur de l’API sans toucher à la structure du front.
+
+### **DataManager**
+
+**Rôle :**
+Cœur du traitement backend. Charge, nettoie et compare les données issues des CSV 2023/2024.
+
+**Méthodes :**
+
+* `loadCSV()` → importe les fichiers CSV du MESR.
+* `buildColumnMap()` → crée un mapping dynamique des colonnes selon les tokens (2024) et alias (2023).
+* `makePickers()` → uniformise et calcule les indicateurs (candidats, admis, taux, etc.).
+* `getMasterData()` → renvoie la fiche mono-année.
+* `getMasterComparatif()` → renvoie la fiche comparée 2023<->2024.
+
+**Justification :**
+
+* Centralise toute la logique de lecture et d’interprétation des fichiers.
+* Rend le système**résilient** aux variations d’intitulés de colonnes.
+* Assure la cohérence et la performance (cache mémoire par année).
+
+### **masterRoute**
+
+**Rôle :**
+Gère l’accès aux données depuis le serveur.
+Fait le lien entre l’API et le `DataManager`.
+
+**Méthodes :**
+
+* `GET /api/master/:id/:annee` → fiche mono-année (debug/test).
+* `GET /api/master/:id` → fiche comparative 2023<->2024.
+
+**Justification :**
+
+* Simplifie la structure serveur : deux routes claires et directes.
+* Sert d’intermédiaire entre le client et le cœur logique (`DataManager`).
+* Permet un découplage total entre le front et la logique de parsing CSV.
+
+### **VizManager**
+
+**Rôle :**
+Génère la visualisation des données dans le navigateur.
+
+**Méthodes :**
+
+* `renderComparatif()` → affiche les barres 2023<->2024 (Candidatures / Admis / Taux).
+
+**Justification :**
+
+* Sépare la logique visuelle du reste du code.
+* Facilite l’évolution (ajout futur d’autres types de graphiques).
+* Gère un affichage **adaptatif et lisible** (tailles, marges, labels).
+
 ### **Version actuelle (simplifiée et conforme au besoin réel)**
 
 Seulement les **modules essentiels** à la fiche unique :
 
 * ✅`Orchestrator` : lance la logique (récupère l’ID, appelle l’API).
 * ✅`RESTManager` : interface entre front et API (remplace l’ancien rôle du cache + orchestrateur de requêtes).
-* ✅ **`masterRoute` : route principale** **`/api/master`.
+* ✅ **`masterRoute` : route principale** `/api/master`.
 * ✅`DataManager` : traitement, mapping, comparaison CSV.
 * ✅`VizManager` : rendu graphique (barres + KPIs).
 * ❌ plus de **`CacheManager` /** **`UIManager` /** `FilterManager` → car pas de filtres, ni d’état complexe, ni d’interface multi-pages.
