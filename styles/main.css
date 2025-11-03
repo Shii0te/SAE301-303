@@ -1,53 +1,199 @@
-body {
-    font-family: system-ui, sans-serif;
-    margin: 2rem;
-    color: black;
-}
-
-#viz {
-    margin-top: 1rem;
-}
-
-#status[data-type="loading"] {
-    color: #555;
-}
-
-#status[data-type="error"] {
-    color: #b00020;
-    font-weight: 600;
-}
-
-.kpis {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin: 12px 0;
-}
-
-.kpis>div {
-    border: 1px solid #eee;
-    border-radius: 10px;
-    padding: 12px;
-}
-
-.kpis span {
-    display: block;
-    font-size: 12px;
+/* --------------------
+   RESET & BASE
+-------------------- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: "Poppins", Arial, sans-serif;
+    background-color: #f4f4f4;
+    color: #222;
+    line-height: 1.5;
+  }
+  
+  /* --------------------
+     HEADER
+  -------------------- */
+  .page-header {
+    background-color: #fff;
+    padding: 20px 40px;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .page-header h1 {
+    color: #e41f74;
+    font-size: 1.8rem;
+    margin-bottom: 6px;
+  }
+  
+  .breadcrumb {
+    font-size: 0.9rem;
     color: #666;
-}
-
-.kpis strong {
-    font-size: 20px;
+  }
+  
+  .breadcrumb a {
+    color: #666;
+    text-decoration: none;
+  }
+  
+  .breadcrumb a:hover {
+    text-decoration: underline;
+  }
+  
+  /* --------------------
+     SECTION FICHE MASTER
+  -------------------- */
+  main#app {
+    background-color: #e41f74; /* fond rose fuchsia */
+    color: #fff;
+    border-radius: 8px;
+    padding: 40px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Contenu en deux colonnes */
+  .fiche-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  
+  /* Zone texte à gauche */
+  .infos-master {
+    flex: 1 1 60%;
+  }
+  
+  .infos-master h2 {
+    font-size: 1.4rem;
     font-weight: 700;
-}
-
-
-.header h2 {
-    margin: 8px 0 0 0;
-}
-
-.header .sub {
-    color: #666;
-    font-size: 13px;
+    margin-bottom: 12px;
+  }
+  
+  .infos-master p {
+    font-size: 1rem;
+    margin-bottom: 8px;
+  }
+  
+  .infos-master strong {
+    font-weight: 600;
+  }
+  
+  .btn-postuler {
+    background-color: #fff;
+    color: #e41f74;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-weight: 600;
+    margin-top: 18px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+  }
+  
+  .btn-postuler:hover {
+    background-color: #f8f8f8;
+    transform: translateY(-2px);
+  }
+  
+  /* Logo rond à droite */
+  .badge-master {
+    flex: 1 1 30%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .badge-master img {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background-color: #fff;
+    object-fit: contain;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* --------------------
+     INDICATEURS (KPIs)
+  -------------------- */
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-top: 30px;
+    margin-bottom: 40px;
+  }
+  
+  .kpis div {
+    background-color: rgba(255, 255, 255, 0.15);
+    padding: 14px;
+    border-radius: 6px;
+    text-align: center;
+  }
+  
+  .kpis span {
+    display: block;
+    font-size: 0.9rem;
+    opacity: 0.85;
+  }
+  
+  .kpis strong {
+    display: block;
+    font-size: 1.3rem;
+    font-weight: 600;
     margin-top: 4px;
-}
+  }
+  
+  /* --------------------
+     DIAGRAMMES (SVG)
+  -------------------- */
+  .diagrammes {
+    background-color: #fff;
+    color: #000;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+  }
+  
+  .diagrammes div {
+    font-weight: 600;
+    margin-bottom: 10px;
+    font-size: 1rem;
+  }
+  
+  .diagrammes svg text {
+    font-size: 0.75rem;
+    fill: #333;
+    text-anchor: middle;
+  }
+  
+  .diagrammes svg rect {
+    fill: #e41f74;
+  }
+  
+  /* --------------------
+     RESPONSIVE
+  -------------------- */
+  @media (max-width: 768px) {
+    main#app {
+      padding: 24px;
+    }
+  
+    .fiche-content {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+  
+    .infos-master {
+      flex: 1 1 100%;
+    }
+  
+    .badge-master {
+      margin-top: 20px;
+    }
+  }
+  
