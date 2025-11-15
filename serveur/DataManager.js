@@ -7,305 +7,135 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ---------- Cache mémoire par année ----------
+/* ============================================================================
+   1) CACHE (pour éviter de recharger les CSV à chaque requête)
+============================================================================ */
+
 const cache = {
-  rows: new Map(),    // annee -> Array<row>
-  ids: new Map(),     // annee -> Map<formation_id, row>
-  cols: new Map(),    // annee -> { key -> columnName } (mapping dynamique)
+  rows: new Map(),  // annee → tableau brut du CSV
+  cols: new Map(),  // annee → mapping des colonnes
+  ids: new Map(),   // annee → Map(idFormation → ligne CSV)
 };
 
-// ---------- Helpers génériques ----------
-function csvPath(annee) {
-  return path.join(__dirname, "..", "data", `fr-esr-mon_master_${annee}.csv`);
-}
 
-function loadCSV(annee) {
+/* ============================================================================
+   2) UTILITAIRES SIMPLES
+============================================================================ */
+
+const csvPath = (year) =>
+  path.join(__dirname, "..", "data", `fr-esr-mon_master_${year}.csv`);
+
+function loadCSV(year) {
   return new Promise((resolve, reject) => {
-    const file = csvPath(annee);
-    const rows = [];
-    fs.createReadStream(file)
+    const out = [];
+    fs.createReadStream(csvPath(year))
       .pipe(csv({ separator: ";" }))
-      .on("data", (r) => rows.push(r))
-      .on("end", () => resolve(rows))
+      .on("data", (row) => out.push(row))
+      .on("end", () => resolve(out))
       .on("error", reject);
   });
 }
 
-// ===================== Utils robustes (garde-les) =====================
+// normalisation en minuscules sans accents
+const norm = (s = "") =>
+  String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
-// Normalise (minuscules, sans accents) pour matcher des en-têtes 2024 "longs"
-function norm(s = "") {
-  return String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-}
-
-// Cherche la 1re colonne dont l'en-tête contient TOUS les tokens donnés
+// essayer de trouver une colonne contenant certains mots
 function findCol(headers, ...tokens) {
-  const ts = tokens.map(norm);
+  const T = tokens.map(norm);
   for (const h of headers) {
     const H = norm(h);
-    if (ts.every((t) => H.includes(t))) return h; // renvoie le nom exact de la colonne
+    if (T.every((t) => H.includes(t))) return h;
   }
   return null;
 }
 
-// 1er champ non vide parmi plusieurs colonnes candidates
-function firstNonEmpty(row, cols = []) {
-  for (const c of cols) {
-    const v = row[c];
-    if (v != null && String(v).trim() !== "") return String(v).trim();
-  }
-  return "";
-}
-
-// parse nombre (gère les virgules françaises)
-function parseNum(v) {
-  if (v == null || v === "") return 0;
+// Nombre FR (1,25 → 1.25)
+const parseNum = (v) => {
+  if (!v) return 0;
   const n = Number(String(v).replace(",", "."));
   return Number.isFinite(n) ? n : 0;
-}
+};
 
-// ===================== Construction du mapping par année =====================
-/**
- * Construit un mapping dynamique des colonnes à partir des en-têtes lus.
- * - Pour 2024 (entêtes longs), on détecte par tokens ("effectif", "confirmé", "phase ...")
- * - Pour 2023 (entêtes courts), on garde des alias exacts ("n_can", "n_prop", "n_accept", "rang_dernier"...)
- *
- * NB: On renvoie des *noms de colonnes* exacts (ceux présents dans le CSV),
- *     pas les valeurs. Les valeurs seront lues plus tard via `pickers(...)`.
- */
+
+/* ============================================================================
+   3) DETECTION AUTOMATIQUE DES COLONNES
+============================================================================ */
+
 function buildColumnMap(headers) {
-  const has = (name) => headers.includes(name);
-  const col = (specs) => {
-
-    // specs = [ [tokens...], "alias2023", "autreAliasCourt", ... ]
-    // 1) essais par tokens (2024), 2) sinon alias exact (2023)
-    for (const s of specs) {
-      if (Array.isArray(s)) {
-        const c = findCol(headers, ...s);
-        if (c) return c;
-      } else if (typeof s === "string") {
-        if (has(s)) return s;
+  const has = (c) => headers.includes(c);
+  const col = (options) => {
+    for (const opt of options) {
+      if (Array.isArray(opt)) {
+        const detected = findCol(headers, ...opt);
+        if (detected) return detected;
+      } else if (typeof opt === "string" && has(opt)) {
+        return opt;
       }
     }
-
     return null;
   };
 
-  // ---- IDENTITÉ -------------------------------------------------------
-  const K = {
-    // établissement, mention, parcours, académie, région, discipline
+  return {
     etab: col([["libelle", "etablissement"], "eta_nom"]),
-    mention: col([["intitule", "mention"], "mention"]),
-    parcours: col([["intitule", "parcours"], "parcours"]),
-    academie: col([["academie", "etablissement"], "acad_lib"]),
-    region: col([["region", "academique", "etablissement"], "acad_reg_lib"]),
+    mention: col([["mention"], "mention"]),
+    parcours: col([["parcours"], "parcours"]),
+    academie: col([["academie"], "acad_lib"]),
+    region: col([["region"], "acad_reg_lib"]),
     discipline: col([["discipline"], "disci_lib"]),
 
-    // ---- IDENTIFIANTS (utile pour rechercher des lignes) --------------
-    id_formation: col([["identifiant", "formation"], "id_formation", "formation_id", "Identifiant de la formation"]),
-    id_mention: col([["identifiant", "mention"], "inm"]),       // 2023: inm
-    id_parcours: col([["identifiant", "parcours"], "inmp"]),     // 2023: inmp
+    id_formation: col([["identifiant", "formation"], "id_formation"]),
+    n_can_pp: col([["confirme", "phase principale"], "n_can"]),
+    n_can_pc: col([["confirme", "phase complementaire"]]),
 
-    // ---- NOMBRES PRINCIPAUX ------------------------------------------
-    // n_can (confirmés)
-    n_can_pp: col([["effectif", "confirme", "phase principale"], "n_can"]),
-    n_can_pc: col([["effectif", "confirme", "phase complementaire"]]),
-    n_can: col(["n_can"]), // ← alias direct 2023
+    n_prop_total: col([["recu", "proposition"], "n_prop"]),
+    n_acc_total: col([["accepte", "proposition"], "n_accept"]),
 
-    // n_prop (reçus)
-    n_prop_total: col([["effectif", "recu une proposition", "phase principale ou en phase complementaire"], "n_prop"]),
-    n_prop_pp: col([["effectif", "recu une proposition", "phase principale"]]),
-    n_prop_pc: col([["effectif", "recu une proposition", "phase complementaire"]]),
-    n_prop: col(["n_prop"]), // ← alias direct 2023
-
-    // n_acc (acceptés)
-    n_acc_total: col([["effectif", "accepte", "proposition", "admission", "phase principale ou en phase complementaire"], "n_accept"]),
-    n_acc_pp: col([["effectif", "accepte", "proposition", "admission", "phase principale"]]),
-    n_acc_pc: col([["effectif", "accepte", "proposition", "admission", "phase complementaire"]]),
-    n_accept: col(["n_accept"]), // ← alias direct 2023
-
-    // rang du dernier appelé
-    rang_pp: col([["rang", "dernier", "appele", "phase principale"], "rang_dernier"]),
-    rang_pc: col([["rang", "dernier", "appele", "phase complementaire"]]),
-    rang_dernier: col(["rang_dernier"]), // ← alias direct 2023
-
-
-    // ---- PROFIL ADMIS (rentrée N-1) -----------------------------------
-    // En 2023, alias courts: n_accept_lg3 / lp3 / master / autre / noninscri
-    // En 2024, valeurs agrégées PP+PC existent via libellés "PP ou de PC inscrits en ..."
-    acc_L3: col([["accepte", "admission", "inscrits", "troisieme", "licence generale"], "n_accept_lg3"]),
-    acc_LP: col([["accepte", "admission", "inscrits", "licence professionnelle"], "n_accept_lp3"]),
-    acc_Master: col([["accepte", "admission", "inscrits", "master"], "n_accept_master"]),
-    acc_Autre: col([["accepte", "admission", "inscrits", "autre", "formation"], "n_accept_autre"]),
-    acc_NonIns: col([["accepte", "admission", "n etaient pas inscrits"], "n_accept_noninscri"]), // optionnel
-
-    // Parité (femmes admises global)
-    acc_femmes: col([["accepte", "proposition", "admission", "dont", "femmes"], "n_accept_femme"]),
+    rang_pp: col([["rang", "principal"], "rang_dernier"]),
   };
-
-  return K;
 }
 
-// ===================== Pickers (comment lire les valeurs) =====================
-/**
- * On ne lit *pas* toujours 1 colonne = 1 valeur.
- * Exemple 2024: "confirmé" = PP + PC ; "accepté" idem.
- * Les pickers ci-dessous font l’assemblage nécessaire.
- */
-function makePickers(K) {
-  // Helpers: lire chaîne / nombre à partir d'une clé de mapping
-  const getStr = (row, key) => (K[key] ? String(row[K[key]] ?? "").trim() : "");
-  const getNum = (row, key) => (K[key] ? parseNum(row[K[key]]) : 0);
 
-  // -- Identité
-  const identite = (row) => ({
-    etablissement: getStr(row, "etab"),
-    mention: getStr(row, "mention"),
-    parcours: getStr(row, "parcours"),
-    academie: getStr(row, "academie"),
-    region: getStr(row, "region"),
-    discipline: getStr(row, "discipline"),
-  });
+/* ============================================================================
+   4) CHARGEMENT / CONSTRUCTION DU CACHE
+============================================================================ */
 
-  // -- Volumétrie (2024 = PP+PC, 2023 = alias court)
-  const n_can = (row) => {
-    // si on a les 2024 (PP/PC), on somme ; sinon fallback alias 2023
-    const sum2024 = getNum(row, "n_can_pp") + getNum(row, "n_can_pc");
-    const v2023 = getNum(row, "n_can"); // (n'existe que si K.n_can a matché un alias court)
-    return sum2024 || v2023 || 0;
-  };
-
-  const n_prop = (row) => {
-    // privilégié: la colonne "PP ou PC" (2024), sinon fallback PP+PC, sinon alias 2023
-    const both = getNum(row, "n_prop_total");
-    if (both) return both;
-    const sum = getNum(row, "n_prop_pp") + getNum(row, "n_prop_pc");
-    if (sum) return sum;
-    // alias 2023
-    const v2023 = getNum(row, "n_prop");
-    return v2023 || 0;
-  };
-
-  const n_acc = (row) => {
-    const both = getNum(row, "n_acc_total");
-    if (both) return both;
-    const sum = getNum(row, "n_acc_pp") + getNum(row, "n_acc_pc");
-    if (sum) return sum;
-    // 2023 alias: n_accept
-    const v2023 = getNum(row, "n_accept");
-    return v2023 || 0;
-  };
-
-  const rang_dernier = (row) => {
-    // priorité: phase principale ; fallback: phase complémentaire ; fallback: alias 2023
-    const vPP = getNum(row, "rang_pp");
-    const vPC = getNum(row, "rang_pc");
-    const v23 = getNum(row, "rang_dernier");
-    return vPP || v23 || vPC || 0;
-  };
-
-  // -- Profils admis (L3, LP, Master, Autre, Femmes)
-  const profil_admis = (row) => ({
-    L3: getNum(row, "acc_L3"),
-    LP: getNum(row, "acc_LP"),
-    Master: getNum(row, "acc_Master"),
-    Autre: getNum(row, "acc_Autre"),
-    femmes: getNum(row, "acc_femmes"),
-    // NonIns: getNum(row, "acc_NonIns"), // (si tu veux l’exposer)
-  });
-
-  return { identite, n_can, n_prop, n_acc, rang_dernier, profil_admis };
-}
-
-// ===================== Intégration dans getMasterData(...) =====================
-// Dans ta fonction getMasterData(id, annee), après avoir:
-// - lu/chargé les lignes (rows),
-// - construit K = buildColumnMap(headers),
-// - trouvé la bonne `row` par formation_id,
-// ajoute ceci pour extraire proprement :
-
-/*
-const P = makePickers(K);
-
-// lectures robustes
-const val_n_can  = P.n_can(row);
-const val_n_prop = P.n_prop(row);
-const val_n_acc  = P.n_acc(row);
-const taux_adm   = val_n_can ? val_n_acc / val_n_can : 0;
-
-return {
-  formation_id: String(formationId).trim(),
-  annee: year,
-  identite: P.identite(row),
-  stats: {
-    candidatures: {
-      n_can: val_n_can,
-      n_prop: val_n_prop,
-      n_acc: val_n_acc,
-      taux_adm,
-      rang_dernier: P.rang_dernier(row),
-    },
-    profil_admis: P.profil_admis(row),
-  },
-};
-*/
-
-// ===================== Astuce debug =====================
-// Après `const K = buildColumnMap(headers)`, tu peux vérifier ce qui a matché :
-/*
-console.table(Object.entries(K).map(([k, v]) => ({ key: k, column: v || "(non trouvée)" })));
-*/
-
-
-// lecture sécurisée via map
-function numBy(K, key, row) {
-  const c = K[key];
-  return c ? parseNum(row[c]) : 0;
-}
-function strBy(K, key, row) {
-  const c = K[key];
-  return c ? String(row[c] ?? "").trim() : "";
-}
-
-// ---------- Indexation par identifiant de formation ----------
-const ID_KEYS_CANDIDATES = [
-  "Identifiant de la formation",
-  "ifc",
-];
-
-function buildIdIndex(rows) {
-  const idx = new Map();
-  for (const r of rows) {
-    const raw = firstNonEmpty(r, ID_KEYS_CANDIDATES);
-    if (!raw) continue;
-    const id = String(raw).trim();
-    if (!idx.has(id)) idx.set(id, r);
+async function ensure(year) {
+  // charger les lignes CSV
+  if (!cache.rows.has(year)) {
+    const rows = await loadCSV(year);
+    cache.rows.set(year, rows);
   }
-  return idx;
-}
 
-// ---------- Ensure (charge + map + index) ----------
-async function ensure(annee) {
-  if (!cache.rows.has(annee)) {
-    const rows = await loadCSV(annee);
-    cache.rows.set(annee, rows);
-  }
-  if (!cache.cols.has(annee)) {
-    const rows = cache.rows.get(annee);
+  // détecter les colonnes
+  if (!cache.cols.has(year)) {
+    const rows = cache.rows.get(year);
     const headers = Object.keys(rows[0] || {});
-    const K = buildColumnMap(headers);
-    cache.cols.set(annee, K);
-    // console.table(Object.entries(K).map(([k, v]) => ({ key: k, column: v || "(non trouvée)" })));
+    cache.cols.set(year, buildColumnMap(headers));
   }
-  if (!cache.ids.has(annee)) {
-    const rows = cache.rows.get(annee);
-    cache.ids.set(annee, buildIdIndex(rows));
+
+  // index par ID
+  if (!cache.ids.has(year)) {
+    const rows = cache.rows.get(year);
+    const idx = new Map();
+    for (const r of rows) {
+      const id =
+        r["Identifiant de la formation"] ||
+        r["id_formation"] ||
+        r["ifc"];
+      if (id) idx.set(String(id).trim(), r);
+    }
+    cache.ids.set(year, idx);
   }
 }
 
-// ---------- API publique ----------
-export async function getMasterData(formationId, annee) {
-  const year = Number(annee);
+
+/* ============================================================================
+   5) API : RÉCUPÉRER UNE FORMATION
+============================================================================ */
+
+export async function getMasterData(formationId, year) {
+  year = Number(year);
   await ensure(year);
 
   const rows = cache.rows.get(year);
@@ -313,33 +143,28 @@ export async function getMasterData(formationId, annee) {
   const idx = cache.ids.get(year);
 
   const row = idx.get(String(formationId).trim());
-  if (!row) {
-    return { error: "Master non trouvé", id: formationId, annee: year };
-  }
+  if (!row) return { error: "Master non trouvé", id: formationId, year };
 
-  // Identité
+  const get = (key) => (K[key] ? row[K[key]] : "");
+  const getNum = (key) => parseNum(get(key));
+
+  // identité
   const identite = {
-    etablissement: strBy(K, "etab", row),
-    mention: strBy(K, "mention", row),
-    parcours: strBy(K, "parcours", row),
-    academie: strBy(K, "academie", row),
-    region: strBy(K, "region", row),
-    discipline: strBy(K, "discipline", row),
+    etablissement: get("etab"),
+    mention: get("mention"),
+    parcours: get("parcours"),
+    academie: get("academie"),
+    region: get("region"),
+    discipline: get("discipline"),
   };
 
-  // ---- Utilisation des pickers (calculs corrects pour 2023 + 2024)
-  const P = makePickers(K);
-
-  const n_can = P.n_can(row);
-  const n_prop = P.n_prop(row);
-  const n_acc = P.n_acc(row);
-  const taux_adm = n_can ? n_acc / n_can : 0;
-
-  const profil = P.profil_admis(row);
-
+  // stats
+  const n_can = getNum("n_can_pp") + getNum("n_can_pc");
+  const n_prop = getNum("n_prop_total");
+  const n_acc = getNum("n_acc_total");
 
   return {
-    formation_id: String(formationId).trim(),
+    formation_id: String(formationId),
     annee: year,
     identite,
     stats: {
@@ -347,43 +172,48 @@ export async function getMasterData(formationId, annee) {
         n_can,
         n_prop,
         n_acc,
-        taux_adm,
-        rang_dernier: P.rang_dernier(row), // <-- correction ici
+        taux_adm: n_can ? n_acc / n_can : 0,
+        rang_dernier: getNum("rang_pp"),
       },
-      profil_admis: profil,
     },
   };
-
 }
 
-export async function getMasterComparatif(formationId) {
-  const d23 = await getMasterData(formationId, 2023);
-  const d24 = await getMasterData(formationId, 2024);
 
-  if (d23.error && d24.error) {
-    return { error: "Master non trouvé pour 2023 et 2024", formation_id: formationId };
-  }
+/* ============================================================================
+   6) API : COMPARATIF 2023 / 2024
+============================================================================ */
 
-  // choisir une identité “référence”
-  const identite =
-    (d24 && !d24.error && d24.identite) ||
-    (d23 && !d23.error && d23.identite) ||
-    {};
+export async function getMasterComparatif(id) {
+  const d23 = await getMasterData(id, 2023);
+  const d24 = await getMasterData(id, 2024);
 
-  const ncan23 = d23?.stats?.candidatures?.n_can || 0;
-  const ncan24 = d24?.stats?.candidatures?.n_can || 0;
-  const tx23 = d23?.stats?.candidatures?.taux_adm || 0;
-  const tx24 = d24?.stats?.candidatures?.taux_adm || 0;
+  if (d23.error && d24.error)
+    return { error: "Introuvable en 2023 et 2024", formation_id: id };
 
-  const evoCan = ncan23 ? ((ncan24 - ncan23) / ncan23) * 100 : 0;
-  const evoTx = tx23 ? ((tx24 - tx23) / tx23) * 100 : 0;
+  const identite = d24.identite || d23.identite;
+
+  const evoCan =
+    d23.stats?.candidatures?.n_can
+      ? ((d24.stats.candidatures.n_can - d23.stats.candidatures.n_can) /
+          d23.stats.candidatures.n_can) *
+        100
+      : 0;
+
+  const evoTx =
+    d23.stats?.candidatures?.taux_adm
+      ? ((d24.stats.candidatures.taux_adm -
+          d23.stats.candidatures.taux_adm) /
+          d23.stats.candidatures.taux_adm) *
+        100
+      : 0;
 
   return {
-    formation_id: String(formationId).trim(),
+    formation_id: id,
     identite,
     annees: {
-      "2023": d23,
-      "2024": d24,
+      2023: d23,
+      2024: d24,
       comparaison: {
         evolution_candidats: evoCan,
         evolution_taux_admission: evoTx,

@@ -1,49 +1,62 @@
 <!DOCTYPE html>
 <html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MASTER+</title>
-    <link rel="stylesheet" href="/styles/main.css" />
-  </head>
 
-  <body>
-    <!-- ======= SECTION PRINCIPALE ======= -->
-    <main id="app">
-      <!-- Zone Fiche Master -->
-      <section class="fiche-master">
-        <div class="fiche-content">
-          <!-- Informations sur le master -->
-          <div class="infos-master">
-            <h2 id="nom-master">Nom du Master :</h2>
-            <p><strong>Région :</strong> <span id="region">—</span></p>
-            <p><strong>Domaine d'activité :</strong> <span id="domaine">—</span></p>
-            <p><strong>Informations clés :</strong> <span id="infos">—</span></p>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-            <button class="btn-postuler">Postuler sur MonMaster</button>
-          </div>
+  <title>MASTER+</title>
+  <link rel="stylesheet" href="/styles/main.css" />
 
-          <!-- Logo diplôme
-          <div class="badge-master">
-            <img src="diplome-logo.png" alt="Diplôme national de master" />
-          </div>
-        </div> -->
-      </section>
+  <!-- JS PRINCIPAL -->
+  <script type="module">
+    import { main } from "/module/Orchestrator.js";
+    main();
+  </script>
+</head>
 
-      <!-- Zone dynamique générée -->
-      <section id="status" aria-live="polite"></section>
-      <section id="viz"></section>
-    </main>
+<body>
+  <main id="app">
 
-    <!-- ======= OUTILS TECHNIQUES ======= -->
-    <div class="debug-tools" style="display: flex; gap: 8px; align-items: center; margin: 8px 0">
-      <input id="inpId" placeholder="formation_id (ex: ABC123)" hidden />
-      <button id="btnLoad" hidden>Charger (comparatif)</button>
-    </div>
+    <!-- ================= FICHE MASTER ================= -->
+    <section class="fiche-master">
+      <div class="fiche-content">
 
-    <script type="module">
-      import { main } from "/module/Orchestrator.js";
-      main();
-    </script>
-  </body>
+        <!-- Colonne gauche : infos -->
+        <div class="infos-master">
+          <h2 id="nom-master">Nom du Master</h2>
+
+          <p><strong>Région :</strong> <span id="region">—</span></p>
+          <p><strong>Domaine d’activité :</strong> <span id="domaine">—</span></p>
+          <p><strong>Informations clés :</strong> <span id="infos">—</span></p>
+
+          <button class="btn-postuler">Postuler sur MonMaster</button>
+        </div>
+
+        <!-- Colonne droite : logo -->
+        <div class="badge-master">
+          <img src="diplome-logo.png" alt="Diplôme national de master" />
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ================== ZONES DYNAMIQUES ================== -->
+    <section class="infos-master" id="status" aria-live="polite"></section>
+    <section id="viz"></section>
+
+  </main>
+
+
+  <!-- OUTILS DE DEBUG (invisibles ) -->
+  <div class="debug-tools" style="display:flex; gap:8px; margin:8px 0;">
+    <input id="inpId" placeholder="formation_id (ex: ABC123)" hidden />
+    <button id="btnLoad" hidden>Charger (comparatif)</button>
+  </div>
+
+
+
+</body>
+
 </html>

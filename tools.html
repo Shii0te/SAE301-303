@@ -1,90 +1,133 @@
 <!doctype html>
 <html lang="fr">
-
 <head>
-    <meta charset="utf-8" />
-    <title>Outils MonMaster</title>
-    <link rel="stylesheet" href="/styles/main.css" />
+  <meta charset="utf-8" />
+  <title>Outils MonMaster</title>
+  <link rel="stylesheet" href="/styles/main.css" />
 </head>
 
 <body>
-    <main style="max-width:960px;margin:24px auto;">
-        <h1>Outils • Recherche d’identifiants</h1>
 
-        <div style="display:flex;gap:8px;align-items:center;margin:12px 0">
-            <input id="q" placeholder="ex: informatique paris cité" style="flex:1" />
-            <select id="annee">
-                <option value="2024">2024</option>
-                <option value="2023">2023</option>
-            </select>
-            <button id="btnSearch">Rechercher</button>
+<main style="max-width:960px;margin:24px auto;">
+
+  <h1>Outils • Recherche d’identifiants</h1>
+
+  <!-- ================= FORMULAIRE DE RECHERCHE ================= -->
+  <div style="display:flex;gap:8px;align-items:center;margin:12px 0">
+    <input id="q" placeholder="ex : informatique paris cité" style="flex:1" />
+    
+    <select id="annee">
+      <option value="2024">2024</option>
+      <option value="2023">2023</option>
+    </select>
+
+    <button id="btnSearch">Rechercher</button>
+  </div>
+
+  <!-- Statut + résultats -->
+  <div id="status" aria-live="polite"></div>
+  <div id="results" style="margin-top:12px"></div>
+
+</main>
+
+
+<!-- ========================= JS ========================= -->
+<script type="module">
+
+  /* ============================================================
+     Fonction d'appel API
+  ============================================================ */
+  async function search(query, year) {
+    const url = `/api/search?annee=${encodeURIComponent(year)}&q=${encodeURIComponent(query)}`;
+    const res = await fetch(url);
+
+    if (!res.ok) throw new Error("Recherche impossible");
+    return res.json();
+  }
+
+
+  /* ============================================================
+     Rendu des résultats
+  ============================================================ */
+  function renderResults(list, limit = 200) {
+    const box = document.querySelector("#results");
+
+    if (!list.length) {
+      box.innerHTML = `<p>Aucun résultat.</p>`;
+      return;
+    }
+
+    const shown = list.slice(0, limit);
+
+    box.innerHTML = shown.map(r => `
+      <div style="border:1px solid #eee;border-radius:10px;padding:10px;margin-bottom:8px">
+        <div><strong>${r.mention}</strong></div>
+        <div style="color:#666">${r.etab}</div>
+        <div style="font-size:12px;margin:4px 0">
+          ID : <code>${r.id}</code>
         </div>
 
-        <div id="status"></div>
-        <div id="results" style="margin-top:12px"></div>
-    </main>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <a href="/?id=${encodeURIComponent(r.id)}" style="text-decoration:none">
+            <button>Ouvrir dans le viewer</button>
+          </a>
 
-    <script type="module">
-        async function search(q, annee) {
-            const res = await fetch(`/api/search?annee=${encodeURIComponent(annee)}&q=${encodeURIComponent(q)}`);
-            if (!res.ok) throw new Error("Recherche impossible");
-            return res.json();
-        }
-    
-        function renderResults(arr, limit = 200) {
-            const box = document.querySelector("#results");
-            if (!arr.length) return box.innerHTML = "<p>Aucun résultat.</p>";
-    
-            const shown = arr.slice(0, limit);
-            box.innerHTML = shown.map(r => `
-              <div style="border:1px solid #eee;border-radius:10px;padding:10px;margin-bottom:8px">
-                <div><strong>${r.mention}</strong></div>
-                <div style="color:#666">${r.etab}</div>
-                <div style="font-size:12px;margin:4px 0">ID: <code>${r.id}</code></div>
-                <div style="display:flex;gap:8px;margin-top:6px">
-                  <a href="/?id=${encodeURIComponent(r.id)}" style="text-decoration:none">
-                    <button>Ouvrir dans le viewer</button>
-                  </a>
-                  <button data-id="${r.id}" class="copy">Copier l’ID</button>
-                </div>
-              </div>
-            `).join("");
-    
-            box.querySelectorAll(".copy").forEach(btn => {
-                btn.addEventListener("click", async () => {
-                    await navigator.clipboard.writeText(btn.dataset.id);
-                    setStatus("ID copié ✔️");
-                });
-            });
-        }
-    
-        function setStatus(msg, type = "info") {
-            const s = document.querySelector("#status");
-            s.textContent = msg;
-            s.dataset.type = type;
-        }
-    
-        // --- bouton recherche ---
-        document.querySelector("#btnSearch").addEventListener("click", async () => {
-            const q = (document.querySelector("#q").value || "").trim();
-            const annee = document.querySelector("#annee").value;
-            setStatus(q ? "Recherche…" : "Chargement complet…", "loading");
-            const arr = await search(q, annee);
-            setStatus(`${arr.length} résultat(s).`);
-            renderResults(arr, 200);
-        });
-    
-        // --- au chargement, on affiche la liste complète ---
-        window.addEventListener("DOMContentLoaded", async () => {
-            const annee = document.querySelector("#annee").value;
-            setStatus("Chargement complet…", "loading");
-            const arr = await search("", annee);
-            renderResults(arr, 200); // affiche les 200 premiers
-            setStatus(`${arr.length} résultat(s) trouvés. (affichés : 200)`);
-        });
-    </script>
-    
+          <button class="copy" data-id="${r.id}">Copier l’ID</button>
+        </div>
+      </div>
+    `).join("");
+
+    // boutons "Copier l’ID"
+    box.querySelectorAll(".copy").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        await navigator.clipboard.writeText(btn.dataset.id);
+        setStatus("ID copié ✔️");
+      });
+    });
+  }
+
+
+  /* ============================================================
+     Affichage du message de statut
+  ============================================================ */
+  function setStatus(msg, type = "info") {
+    const s = document.querySelector("#status");
+    s.textContent = msg;
+    s.dataset.type = type;
+  }
+
+
+  /* ============================================================
+     EVENT : Recherche manuelle
+  ============================================================ */
+  document.querySelector("#btnSearch").addEventListener("click", async () => {
+    const query = document.querySelector("#q").value.trim();
+    const year  = document.querySelector("#annee").value;
+
+    setStatus(query ? "Recherche…" : "Chargement complet…", "loading");
+
+    const results = await search(query, year);
+
+    setStatus(`${results.length} résultat(s).`);
+    renderResults(results);
+  });
+
+
+  /* ============================================================
+     EVENT : Chargement initial → afficher tout
+  ============================================================ */
+  window.addEventListener("DOMContentLoaded", async () => {
+    const year = document.querySelector("#annee").value;
+
+    setStatus("Chargement complet…", "loading");
+
+    const results = await search("", year);
+
+    renderResults(results);
+    setStatus(`${results.length} résultat(s) trouvés (affichés : 200)`);
+  });
+
+</script>
 
 </body>
-
 </html>

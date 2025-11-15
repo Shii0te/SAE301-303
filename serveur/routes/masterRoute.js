@@ -4,53 +4,54 @@ import { getMasterData, getMasterComparatif } from "../DataManager.js";
 
 export const masterRoute = Router();
 
-/**
- * Petit ping pour vérifier que le routeur est monté
- * GET /api/master/ping/test -> { ok: true, route: "master" }
- */
+/* ============================================================================
+   Ping (test)
+============================================================================ */
+
 masterRoute.get("/ping/test", (_, res) => {
   res.json({ ok: true, route: "master" });
 });
 
-/**
- * Mono-année
- * Exemple: GET /api/master/0900816NWNGL/2024
- * Renvoie la fiche 2024 (ou 2023 selon annee)
- *
- * ⚠️ Cette route DOIT être déclarée AVANT /:id
- */
+
+/* ============================================================================
+   1) FICHE MONO-ANNÉE
+   GET /api/master/:id/:annee
+   Exemple : /api/master/0900816NWNGL/2024
+============================================================================ */
+
 masterRoute.get("/:id/:annee", async (req, res) => {
+  const { id, annee } = req.params;
+  const year = Number(annee);
+
+  if (![2023, 2024].includes(year)) {
+    return res.status(400).json({ error: "Année invalide (2023 ou 2024 attendue)." });
+  }
+
   try {
-    const { id, annee } = req.params;
-
-    // Validation simple de l'année
-    const year = Number(annee);
-    if (!Number.isInteger(year) || (year !== 2023 && year !== 2024)) {
-      return res.status(400).json({ error: "Année invalide (attendu 2023 ou 2024)." });
-    }
-
     const data = await getMasterData(id, year);
-    if (data?.error) return res.status(404).json(data);
+    if (data.error) return res.status(404).json(data);
     res.json(data);
-  } catch (e) {
-    console.error("[/api/master/:id/:annee] error:", e);
+  } catch (err) {
+    console.error("Erreur GET /api/master/:id/:annee", err);
     res.status(500).json({ error: "Erreur serveur (mono-année)" });
   }
 });
 
-/**
- * Comparatif 2023 vs 2024
- * Exemple: GET /api/master/0900816NWNGL
- * Renvoie les deux années + deltas
- */
+
+/* ============================================================================
+   2) COMPARATIF 2023 + 2024
+   GET /api/master/:id
+============================================================================ */
+
 masterRoute.get("/:id", async (req, res) => {
+  const { id } = req.params;
+
   try {
-    const { id } = req.params;
     const data = await getMasterComparatif(id);
-    if (data?.error) return res.status(404).json(data);
+    if (data.error) return res.status(404).json(data);
     res.json(data);
-  } catch (e) {
-    console.error("[/api/master/:id] error:", e);
+  } catch (err) {
+    console.error("Erreur GET /api/master/:id", err);
     res.status(500).json({ error: "Erreur serveur (comparatif)" });
   }
 });

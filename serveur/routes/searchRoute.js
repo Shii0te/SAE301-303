@@ -1,23 +1,28 @@
 // serveur/routes/searchRoute.js
 import { Router } from "express";
-import { fileURLToPath } from "url";
-import path from "path";
 import fs from "fs";
+import path from "path";
 import csv from "csv-parser";
+import { fileURLToPath } from "url";
 
 export const searchRoute = Router();
+
+/* ============================================================================
+   1) UTILITAIRES
+============================================================================ */
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-function csvPath(annee) {
-  return path.join(__dirname, "..", "..", "data", `fr-esr-mon_master_${annee}.csv`);
-}
+// chemin CSV par année
+const csvPath = (year) =>
+  path.join(__dirname, "..", "..", "data", `fr-esr-mon_master_${year}.csv`);
 
-function loadRows(annee) {
+// charge 1 CSV → tableau d'objets
+function loadRows(year) {
   return new Promise((resolve, reject) => {
     const rows = [];
-    fs.createReadStream(csvPath(annee))
+    fs.createReadStream(csvPath(year))
       .pipe(csv({ separator: ";" }))
       .on("data", (r) => rows.push(r))
       .on("end", () => resolve(rows))
@@ -25,54 +30,67 @@ function loadRows(annee) {
   });
 }
 
-// -------- utils de normalisation (comme dans DataManager) -----------
-const norm = (s = "") => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-const findCol = (headers, ...tokens) => {
-  const ts = tokens.map(norm);
+// normalize : minuscules + sans accents (pour recherche)
+const norm = (s = "") =>
+  String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+// trouve une colonne contenant certains tokens
+function findCol(headers, ...tokens) {
+  const tokensNorm = tokens.map(norm);
   for (const h of headers) {
     const H = norm(h);
-    if (ts.every(t => H.includes(t))) return h;
+    if (tokensNorm.every((t) => H.includes(t))) return h;
   }
   return null;
-};
+}
 
-// -------- construit le mapping MINIMAL pour la recherche -----------
+
+/* ============================================================================
+   2) MAPPING MINIMAL POUR LA RECHERCHE
+============================================================================ */
+
 function buildSearchMap(headers) {
-  const has = (n) => headers.includes(n);
   const col = (specs) => {
     for (const s of specs) {
       if (Array.isArray(s)) {
-        const c = findCol(headers, ...s);
-        if (c) return c;
-      } else if (typeof s === "string") {
-        if (has(s)) return s;
+        const detected = findCol(headers, ...s);
+        if (detected) return detected;
       }
+      if (typeof s === "string" && headers.includes(s)) return s;
     }
     return null;
   };
 
   return {
-    // identifiant formation (ajout de 'ifc' pour 2023)
     id: col([
-      ["identifiant", "formation"], "id_formation", "formation_id",
-      "Identifiant de la formation", "Identifiant formation", "Identifiant navette", "ifc"
+      "id_formation",
+      "Identifiant de la formation",
+      "ifc",
     ]),
-    // mention
-    mention: col([["intitule", "mention"], "mention"]),
-    // établissement (variante 2024 “aujourd’hui” + alias 2023)
-    etab: col([["libelle", "etablissement", "aujourd"], ["libelle", "etablissement"], "eta_nom"]),
+
+    mention: col([["mention"], "mention"]),
+
+    etab: col([
+      ["libelle", "etablissement"],
+      ["libelle", "etablissement"],
+      "eta_nom",
+    ]),
   };
 }
 
+
+/* ============================================================================
+   3) ROUTE DE RECHERCHE
+============================================================================ */
+
 searchRoute.get("/", async (req, res) => {
   try {
-    const q = norm((req.query.q || "").toString());
-    const annee = (req.query.annee || "2024").toString();
+    const query = norm(req.query.q || "");
+    const year = req.query.annee || "2024";
 
-    // si q vide => renvoyer tout (limité à 50 par défaut)
-    const allMode = !q;
+    const allMode = query.length === 0;
+    const rows = await loadRows(year);
 
-    const rows = await loadRows(annee);
     if (!rows.length) return res.json([]);
 
     const headers = Object.keys(rows[0]);
@@ -80,36 +98,32 @@ searchRoute.get("/", async (req, res) => {
 
     if (!K.id) return res.json([]);
 
-    const qTokens = q.split(/\s+/).filter(Boolean);
-    const matches = []; // 👈 manquait ici !
+    const tokens = query.split(/\s+/).filter(Boolean);
+    const results = [];
 
     for (const r of rows) {
-      const mention = r[K.mention] ?? "";
-      const etab = r[K.etab] ?? "";
-      const hay = norm(`${mention} ${etab}`);
+      const mention = r[K.mention] || "";
+      const etab = r[K.etab] || "";
+      const text = norm(`${mention} ${etab}`);
 
-      if (!allMode) {
-        const ok = qTokens.every(t => hay.includes(t));
-        if (!ok) continue;
-      }
+      // si query non vide : on vérifie que tous les mots sont dans haystack
+      if (!allMode && !tokens.every((t) => text.includes(t))) continue;
 
-      const id = (r[K.id] ?? "").toString().trim();
+      const id = String(r[K.id] || "").trim();
       if (!id) continue;
 
-      matches.push({
+      results.push({
         id,
         mention: mention || "(mention inconnue)",
         etab: etab || "(établissement inconnu)",
       });
 
-      // limite la liste renvoyée
-      if (matches.length >= 200) break;
+      if (results.length >= 200) break;
     }
 
-    res.json(matches);
-  } catch (e) {
-    console.error("search error:", e);
-    res.status(500).json({ error: "Recherche impossible" });
+    res.json(results);
+  } catch (err) {
+    console.error("search error:", err);
+    res.status(500).json({ error: "Erreur lors de la recherche" });
   }
 });
-
