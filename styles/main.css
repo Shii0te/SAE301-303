@@ -1,24 +1,58 @@
 /* ============================================================================
-   SECTION PRINCIPALE (full width comme la maquette)
+   RESET & BASE
 ============================================================================ */
-main#app {
-  width: 100%;
-  padding: 0;
+* {
   margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* Bande fuchsia comme sur ton visuel */
+:root {
+  --primary: #e41f74;
+  --white: #ffffff;
+  --text: #222222;
+  --text-light: #666666;
+  --radius: 8px;
+  --page-bg: #f5f5f5;
+}
+
+body {
+  font-family: "Poppins", Arial, sans-serif;
+  background: var(--page-bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* ============================================================================
+   SECTION PRINCIPALE
+============================================================================ */
+
+main#app {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* ============================================================================
+   BANDE FUCHSIA • FICHE MASTER (comme la maquette)
+============================================================================ */
+
 .fiche-master {
   width: 100%;
-  background: var(--primary); /* rose fuchsia */
+  background: var(--primary);
   color: var(--white);
   padding: 48px 80px;
+}
+
+.fiche-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 32px;
 }
 
-/* Contenu aligné à gauche */
+/* --------- Colonne gauche : infos --------- */
+
 .infos-master {
   flex: 1;
   max-width: 50%;
@@ -26,14 +60,39 @@ main#app {
 
 .infos-master h2 {
   font-size: 1.6rem;
+  font-weight: 700;
   margin-bottom: 12px;
 }
 
 .infos-master p {
   margin-bottom: 6px;
+  font-size: 1rem;
 }
 
-/* Logo à droite comme sur ta maquette */
+.infos-master strong {
+  font-weight: 600;
+}
+
+.btn-postuler {
+  background: var(--white);
+  color: var(--primary);
+  border: none;
+  border-radius: 999px;
+  padding: 10px 24px;
+  margin-top: 16px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.btn-postuler:hover {
+  background: #fafafa;
+  transform: translateY(-2px);
+}
+
+/* --------- Colonne droite : logo / visuel --------- */
+
 .badge-master {
   flex: 1;
   display: flex;
@@ -46,37 +105,122 @@ main#app {
   object-fit: contain;
 }
 
-/* Ne recentre PAS le contenu (important !) */
-.fiche-content {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
+/* ============================================================================
+   ZONES SUIVANTES (status + visualisations)
+   → fond blanc, pleine largeur, contenu centré visuellement
+============================================================================ */
+
+#status,
+#viz {
+  background: var(--white);
+  padding: 40px 80px;
+}
+
+/* Message de statut */
+#status {
+  font-size: 0.95rem;
+  min-height: 20px;
+  color: var(--text-light);
+}
+
+/* Contenu interne du #viz */
+#viz > section {
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
 /* ============================================================================
-   SECTIONS ENSUITE (carte blanche)
+   INDICATEURS (KPIs)
 ============================================================================ */
 
-#viz,
-#status {
-  background: #fff;
-  padding: 40px 80px;
-  margin: 0;
+.kpis {
+  margin: 24px 0 36px;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
+.kpis div {
+  background: rgba(228, 31, 116, 0.18);
+  backdrop-filter: blur(3px);
+  padding: 14px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.kpis span {
+  display: block;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.kpis strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1.3rem;
+}
+
+/* ============================================================================
+   DIAGRAMMES
+============================================================================ */
+
 .diagrammes {
-  max-width: 900px;
-  margin: 0 auto;
+  background: var(--white);
+  color: #000;
+  padding: 20px;
+  border-radius: var(--radius);
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.diagrammes > div {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.diagrammes svg {
+  max-width: 100%;
+}
+
+.diagrammes svg text {
+  font-size: 0.75rem;
+  fill: #333;
+  text-anchor: middle;
+}
+
+.diagrammes svg rect {
+  fill: var(--primary);
+}
+
+/* ============================================================================
+   OUTILS / DIVERS
+============================================================================ */
+
+.debug-tools {
+  max-width: 1100px;
+  margin: 16px auto;
 }
 
 /* ============================================================================
    RESPONSIVE
 ============================================================================ */
-@media (max-width: 768px) {
+
+@media (max-width: 900px) {
   .fiche-master {
+    padding: 32px 24px;
+  }
+
+  #status,
+  #viz {
+    padding: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .fiche-content {
     flex-direction: column;
     text-align: center;
-    padding: 32px 20px;
   }
 
   .infos-master {
@@ -85,11 +229,6 @@ main#app {
 
   .badge-master {
     justify-content: center;
-    margin-top: 20px;
-  }
-
-  #viz,
-  #status {
-    padding: 20px;
+    margin-top: 16px;
   }
 }
