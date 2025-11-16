@@ -18,6 +18,7 @@ const __dirname = path.dirname(__filename);
 // --- Fichiers statiques (front) ---
 app.use("/styles", express.static(path.join(__dirname, "..", "styles")));
 app.use("/module", express.static(path.join(__dirname, "..", "module")));
+app.use("/images", express.static(path.join(__dirname, "..", "images")));
 
 // --- API ---
 app.use("/api/master", masterRoute);
@@ -41,3 +42,4 @@ app.get("/", (_, res) => {
 app.listen(PORT, () => {
   console.log(`✅ Serveur lancé sur http://localhost:${PORT}`);
 });
+

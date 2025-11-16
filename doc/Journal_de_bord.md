@@ -61,7 +61,7 @@ Ce journal consigne, par date, l’avancement, les décisions et difficultés du
 - Ajouter au JSON : `n_prop`, `rang_dernier`, “profil admis” (L3/LP/Master/Autre), part de femmes.
 - (Optionnel) UI : sélecteurs `formationId` et `année` + `VizManager.update()`.
 
-## 26 oct. 2025 — Intégration complète DataManager & outils
+## 26-31 oct. 2025 — Intégration complète DataManager & outils
 
 **À noter :** Les objectifs du 25 octobre sont désormais atteints et validés le 26 octobre 2025.
 
@@ -93,20 +93,20 @@ Finaliser la connexion entre le backend (lecture CSV 2023/2024) et le front (aff
 
 ### Problèmes rencontrés et solutions
 
-| Problème                                   | Analyse                                                                 | Solution                                                          |
-| ------------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| **Taux d’admission = 0**             | Colonnes `n_can` et `n_acc` non détectées (libellés différents) | Mapping par tokens + fusion PP/PC                                 |
-| **Aucune donnée 2023**               | ID =`ifc` non pris en compte                                          | Ajout de `ifc` à `ID_KEYS_CANDIDATES`                        |
-| **Recherche tools vide**              | `/api/search` ignorait `q=""`                                       | Activation du mode `allMode` + limite 50                        |
-| **Chevauchement des barres / textes** | Polices trop grandes, marges insuffisantes                              | Redimensionnement adaptatif + marges dynamiques                   |
-| **404 **`/api/master/...`                 | Mauvais ordre de routes Express                                         | Déclaration `/api/master/:id/:annee` avant `/api/master/:id` |
+
+| Problème                             | Analyse                                                            | Solution                                                     |
+| ------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------ |
+| **Taux d’admission = 0**             | Colonnes`n_can` et `n_acc` non détectées (libellés différents) | Mapping par tokens + fusion PP/PC                            |
+| **Aucune donnée 2023**               | ID =`ifc` non pris en compte                                       | Ajout de`ifc` à `ID_KEYS_CANDIDATES`                        |
+| **Recherche tools vide**              | `/api/search` ignorait `q=""`                                      | Activation du mode`allMode` + limite 50                      |
+| **Chevauchement des barres / textes** | Polices trop grandes, marges insuffisantes                         | Redimensionnement adaptatif + marges dynamiques              |
+| **404 **`/api/master/...`             | Mauvais ordre de routes Express                                    | Déclaration`/api/master/:id/:annee` avant `/api/master/:id` |
 
 ### Résultats
 
 * L’application est **totalement fonctionnelle** : données 2023 et 2024 lisibles et comparables.
 * Les **visualisations** sont propres et lisibles.
 * La **page tools** permet désormais de tester et vérifier n’importe quelle formation rapidement.
-
 
 ### **Autre décision prise – Suppression du module** `FilterManagement.js`
 
@@ -118,3 +118,46 @@ En conséquence, le module **`FilterManagement.js` a été** **supprimé** pour 
 ### Prochaines étapes
 
 * Ajouter les nouvelles visualisations choisis par le groupe.
+
+## 27 oct. 2025 — Stabilisation du front & ajout du logo dynamique
+
+### Objectifs
+
+Finaliser l’intégration visuelle v1, commenter le code, corriger les problèmes d’assets et rendre l’interface conforme à la maquette du groupe.
+
+### Réalisations principales
+
+* **Exposition du dossier** **`/images`** dans Express (résolution du problème d’images non affichées).
+* **Refonte complète du CSS** :
+
+  * mise en place de la bande fuchsia pleine largeur comme sur la maquette,
+  * correction de la structure HTML (`.fiche-master` +`.badge-master`).
+
+
+### **Ajout de nombreux commentaires explicatifs dans le code**
+
+Pour que** ****toute l’équipe** puisse facilement lire / comprendre / modifier :
+
+* Commentaires ajoutés dans :
+  * **DataManager.js**
+    * explication du mapping complexe entre colonnes 2023/2024,
+    * logique du cache, etc...
+  * **searchRoute.js**
+    * commentaires sur`findCol`, la normalisation et la recherche tokenisée.
+  * **RESTManagement.js**
+    * explication du mode “simple” vs “comparatif”.
+  * **Orchestrator.js**
+    * précisions sur le flux de l’application (input → fetch → render).
+  * **VizManager.js**
+    * sections commentées pour que chacun comprenne comment fonctionne l’affichage (KPIs, barres comparatives, layout).
+
+### Résultat
+
+Le front est maintenant** ****fidèle à la maquette**, fonctionnel, lisible et robuste.
+La fiche master est plus professionnelle et chaque université possède désormais un logo automatique cohérent.
+N’importe quel membre du groupe peut ouvrir un fichier et comprendre instantanément le rôle des fonctions clés.
+
+### ✔️ Prochaines étapes
+
+* Ajouter les visualisations finales choisies par le groupe.
+* Ajuster les styles si besoin et finaliser la partie présentation.

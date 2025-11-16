@@ -94,14 +94,19 @@ main#app {
 /* --------- Colonne droite : logo / visuel --------- */
 
 .badge-master {
-  flex: 1;
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--white);
+  width: 200px;
+  height: 200px;
+  border-radius: 100%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
 .badge-master img {
-  width: 180px;
-  height: 180px;
+  width: 120px;
+  height: 120px;
   object-fit: contain;
 }
 
