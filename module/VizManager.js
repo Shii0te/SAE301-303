@@ -17,16 +17,16 @@ export const VizManager = {
     const ncan24 = y24.n_can || 0;
     const nacc23 = y23.n_acc || 0;
     const nacc24 = y24.n_acc || 0;
-    const tx23   = y23.taux_adm || 0;
-    const tx24   = y24.taux_adm || 0;
+    const tx23 = y23.taux_adm || 0;
+    const tx24 = y24.taux_adm || 0;
 
     const delta = (a, b) => (a === 0 ? 0 : ((b - a) / a) * 100);
 
     /* ======================= Fiche Master ======================= */
     fiche.querySelector("#nom-master").textContent = payload.identite?.mention || "—";
-    fiche.querySelector("#region").textContent     = payload.identite?.region || "—";
-    fiche.querySelector("#domaine").textContent    = payload.identite?.discipline || "—";
-    fiche.querySelector("#infos").textContent      = payload.identite?.etablissement || "—";
+    fiche.querySelector("#region").textContent = payload.identite?.region || "—";
+    fiche.querySelector("#domaine").textContent = payload.identite?.discipline || "—";
+    fiche.querySelector("#infos").textContent = payload.identite?.etablissement || "—";
 
     /* ======================= Bloc indicateurs ======================= */
     const kpis = `
@@ -44,12 +44,32 @@ export const VizManager = {
     /* ======================= Diagramme comparatif ======================= */
     const chart = renderBars([
       { label: "Candidatures", v23: ncan23, v24: ncan24 },
-      { label: "Admis",        v23: nacc23, v24: nacc24 }
+      { label: "Admis", v23: nacc23, v24: nacc24 }
     ]);
 
     /* ======================= Injection HTML ======================= */
     root.innerHTML = kpis + chart;
+
+    /* ======================= Redirection MonMaster ======================= */
+    // Récupérer l'id de la formation depuis l'URL (?id=...)
+    const params = new URLSearchParams(window.location.search);
+    const formationId = params.get("id");
+
+    const btn = document.getElementById("btn-monmaster");
+
+    btn.addEventListener("click", () => {
+      if (!formationId) {
+        alert("Impossible d’ouvrir la page MonMaster : aucun id de formation dans l’URL.");
+        return;
+      }
+
+      const url = `https://monmaster.gouv.fr/formation?rechercheBrut=${encodeURIComponent(formationId)}`;
+      window.open(url, "_blank"); // ouvre dans un nouvel onglet
+    });
   }
+
+
+
 };
 
 
@@ -71,8 +91,8 @@ function kpi(label, value) {
 /** Génère un diagramme SVG comparant deux valeurs */
 function renderBars(groups) {
   const W = 520, H = 220,
-        pad = 36, bw = 36,
-        gapBars = 18, gapGroups = 64;
+    pad = 36, bw = 36,
+    gapBars = 18, gapGroups = 64;
 
   const maxVal = Math.max(...groups.flatMap(g => [g.v23, g.v24]), 1);
 

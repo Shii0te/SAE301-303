@@ -119,7 +119,7 @@ En conséquence, le module **`FilterManagement.js` a été** **supprimé** pour 
 
 * Ajouter les nouvelles visualisations choisis par le groupe.
 
-## 27 oct. 2025 — Stabilisation du front & ajout du logo dynamique
+## 15 nov. 2025 — Stabilisation du front & ajout du logo dynamique
 
 ### Objectifs
 
@@ -157,7 +157,8 @@ Le front est maintenant** ****fidèle à la maquette**, fonctionnel, lisible et 
 La fiche master est plus professionnelle et chaque université possède désormais un logo automatique cohérent.
 N’importe quel membre du groupe peut ouvrir un fichier et comprendre instantanément le rôle des fonctions clés.
 
-### ✔️ Prochaines étapes
+### Prochaines étapes
 
 * Ajouter les visualisations finales choisies par le groupe.
 * Ajuster les styles si besoin et finaliser la partie présentation.
+*
