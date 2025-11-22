@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+
 /* ============================================================================
    1) CACHE (pour éviter de recharger les CSV à chaque requête)
 ============================================================================ */
@@ -77,23 +78,52 @@ function buildColumnMap(headers) {
   };
 
   return {
-    etab: col([["libelle", "etablissement"], "eta_nom"]),
-    mention: col([["mention"], "mention"]),
-    parcours: col([["parcours"], "parcours"]),
-    academie: col([["academie"], "acad_lib"]),
-    region: col([["region"], "acad_reg_lib"]),
-    discipline: col([["discipline"], "disci_lib"]),
+    // --- ETABLISSEMENT / MENTION / PARCOURS OK ---
+    etab: col([
+      "Libellé de l'établissement",
+      ["libellé", "etablissement"],
+    ]),
+    mention: col([
+      "Intitulé de la mention",
+      ["intitulé", "mention"],
+    ]),
+    parcours: col([
+      "Intitulé du parcours",
+      ["intitulé", "parcours"],
+    ]),
 
-    id_formation: col([["identifiant", "formation"], "id_formation"]),
-    n_can_pp: col([["confirme", "phase principale"], "n_can"]),
-    n_can_pc: col([["confirme", "phase complementaire"]]),
+    // --- ICI LE FIX : on ne passe plus par des tokens ambigus ---
+    academie: col([
+      "Académie de l'établissement",
+      "Académie du lieu de formation",   // si jamais pour une autre année
+    ]),
+    region: col([
+      "Région académique de l'établissement",
+      "Région académique du lieu de formation",
+    ]),
 
-    n_prop_total: col([["recu", "proposition"], "n_prop"]),
-    n_acc_total: col([["accepte", "proposition"], "n_accept"]),
+    discipline: col([
+      "Discipline de la formation",
+      "Discipline",
+      ["discipline"],
+    ]),
 
+    id_formation: col([
+      "Identifiant de la formation",
+      ["identifiant", "formation"],
+      "id_formation",
+    ]),
+
+    // le reste de ton mapping n_can / n_prop / n_acc / rang_pp comme avant…
+    n_can_pp: col([["confirmé", "phase principale"], "n_can"]),
+    n_can_pc: col([["confirmé", "phase complémentaire"]]),
+    n_prop_total: col([["reçu", "proposition"], "n_prop"]),
+    n_acc_total: col([["accepté", "proposition"], "n_accept"]),
     rang_pp: col([["rang", "principal"], "rang_dernier"]),
   };
 }
+
+
 
 
 /* ============================================================================
@@ -196,16 +226,16 @@ export async function getMasterComparatif(id) {
   const evoCan =
     d23.stats?.candidatures?.n_can
       ? ((d24.stats.candidatures.n_can - d23.stats.candidatures.n_can) /
-          d23.stats.candidatures.n_can) *
-        100
+        d23.stats.candidatures.n_can) *
+      100
       : 0;
 
   const evoTx =
     d23.stats?.candidatures?.taux_adm
       ? ((d24.stats.candidatures.taux_adm -
-          d23.stats.candidatures.taux_adm) /
-          d23.stats.candidatures.taux_adm) *
-        100
+        d23.stats.candidatures.taux_adm) /
+        d23.stats.candidatures.taux_adm) *
+      100
       : 0;
 
   return {

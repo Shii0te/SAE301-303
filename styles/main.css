@@ -14,6 +14,7 @@
   --text-light: #666666;
   --radius: 8px;
   --page-bg: #f5f5f5;
+  --primary-dark: #c41964;
 }
 
 body {
@@ -101,7 +102,7 @@ main#app {
   width: 200px;
   height: 200px;
   border-radius: 100%;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .badge-master img {
@@ -115,21 +116,21 @@ main#app {
    → fond blanc, pleine largeur, contenu centré visuellement
 ============================================================================ */
 
-#status,
-#viz {
-  background: var(--white);
-  padding: 40px 80px;
-}
-
 /* Message de statut */
 #status {
   font-size: 0.95rem;
   min-height: 20px;
-  color: var(--text-light);
+  color: var(--white);
+}
+
+#viz {
+  background: var(--white);
+  padding: 40px 80px;
+  padding-top: 24px;
 }
 
 /* Contenu interne du #viz */
-#viz > section {
+#viz>section {
   max-width: 1000px;
   margin: 0 auto;
 }
@@ -175,10 +176,10 @@ main#app {
   padding: 20px;
   border-radius: var(--radius);
   text-align: center;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
-.diagrammes > div {
+.diagrammes>div {
   font-size: 1.1rem;
   font-weight: 600;
   margin-bottom: 12px;
@@ -199,12 +200,171 @@ main#app {
 }
 
 /* ============================================================================
+   MASTER SIMILAIRES
+============================================================================ */
+
+#similaires-container {
+  margin-top: 40px;
+  padding: 40px 80px;
+  background: #ffffff;
+  border-radius: 12px;
+}
+
+#similaires-container h2 {
+  font-size: 1.4rem;
+  margin-bottom: 16px;
+  font-weight: 700;
+}
+
+#similaires {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.similaire-card {
+  border: 1px solid #eee;
+  padding: 14px;
+  border-radius: 8px;
+  background: #fafafa;
+  cursor: pointer;
+  transition: .2s ease;
+}
+
+.similaire-card:hover {
+  background: #f2f2f2;
+  transform: translateY(-3px);
+}
+
+/* ============================================================================
    OUTILS / DIVERS
 ============================================================================ */
 
 .debug-tools {
   max-width: 1100px;
   margin: 16px auto;
+}
+
+
+/* ============================================================================
+   PAGE TOOLS — OUTILS DE RECHERCHE DE MASTERS SIMILAIRES
+============================================================================ */
+.tools-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 10px;
+}
+
+.tools-description {
+  margin-bottom: 24px;
+  color: var(--white);
+}
+
+.tools-search-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.tools-search-bar input,
+.tools-search-bar select {
+  flex: 1;
+  padding: 12px 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: var(--white);
+  font-size: 1rem;
+}
+
+.tools-search-bar button {
+  padding: 12px 22px;
+  border: none;
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.tools-search-bar button:hover {
+  background: var(--primary-dark);
+  color: var(--white);
+  transform: translateY(-2px);
+}
+
+.tools-status {
+  margin: 10px 0;
+  color: #444;
+}
+
+.tools-intro {
+  font-size: 1rem;
+  background-color: var(--primary);
+  padding: 32px;
+}
+
+.tools-results {
+  margin: 20px auto;
+  max-width: 1100px;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.result-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px;
+  border: 1px solid #eee;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  transition: 0.25s ease;
+}
+
+.result-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+}
+
+.result-card strong {
+  font-size: 1.1rem;
+  color: #111;
+}
+
+.result-card small {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.9rem;
+  color: #777;
+}
+
+.card-buttons {
+  margin-top: 14px;
+  display: flex;
+  gap: 8px;
+}
+
+.card-buttons button {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: none;
+  background: #e41f74;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.card-buttons button:hover {
+  background: #c41964;
+}
+
+.no-result {
+  font-size: 1rem;
+  color: #999;
+  padding-top: 20px;
 }
 
 /* ============================================================================
@@ -216,7 +376,12 @@ main#app {
     padding: 32px 24px;
   }
 
-  #status,
+  #status{
+    color: white;
+    background-color: none;
+  }
+
+
   #viz {
     padding: 24px;
   }
@@ -235,5 +400,20 @@ main#app {
   .badge-master {
     justify-content: center;
     margin-top: 16px;
+  }
+
+  /* ============================================================================
+    PAGE TOOLS — OUTILS DE RECHERCHE DE MASTERS SIMILAIRES
+  =========================================================================== */
+
+  .tools-search-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tools-search-bar input,
+  .tools-search-bar select,
+  .tools-search-bar button {
+    width: 100%;
   }
 }

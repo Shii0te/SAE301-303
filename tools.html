@@ -1,133 +1,109 @@
 <!doctype html>
 <html lang="fr">
+
 <head>
   <meta charset="utf-8" />
-  <title>Outils MonMaster</title>
+  <title>Recherche de Masters – MASTER+</title>
   <link rel="stylesheet" href="/styles/main.css" />
 </head>
 
 <body>
 
-<main style="max-width:960px;margin:24px auto;">
+  <!-- ===== CONTENU PRINCIPAL ===== -->
+  <main class="tools-container">
+    <section class="tools-intro">
+      <h2 class="tools-title">Rechercher un Master</h2>
+      <p class="tools-description">
+        Tape quelques mots clés (ex : <strong>informatique paris</strong>) et choisis l’année.
+        Clique ensuite sur un résultat pour consulter sa fiche complète.
+      </p>
 
-  <h1>Outils • Recherche d’identifiants</h1>
-
-  <!-- ================= FORMULAIRE DE RECHERCHE ================= -->
-  <div style="display:flex;gap:8px;align-items:center;margin:12px 0">
-    <input id="q" placeholder="ex : informatique paris cité" style="flex:1" />
-    
-    <select id="annee">
-      <option value="2024">2024</option>
-      <option value="2023">2023</option>
-    </select>
-
-    <button id="btnSearch">Rechercher</button>
-  </div>
-
-  <!-- Statut + résultats -->
-  <div id="status" aria-live="polite"></div>
-  <div id="results" style="margin-top:12px"></div>
-
-</main>
+      <!-- BARRE DE RECHERCHE -->
+      <div class="tools-search-bar">
+        <input id="q" placeholder="Rechercher une formation…" />
+        <select id="annee">
+          <option value="2024">2024</option>
+          <option value="2023">2023</option>
+        </select>
+        <button id="btnSearch">Rechercher</button>
+      </div>
 
 
-<!-- ========================= JS ========================= -->
-<script type="module">
+      <!-- STATUS -->
+      <div id="status" class="tools-status"></div>
 
-  /* ============================================================
-     Fonction d'appel API
-  ============================================================ */
-  async function search(query, year) {
-    const url = `/api/search?annee=${encodeURIComponent(year)}&q=${encodeURIComponent(query)}`;
-    const res = await fetch(url);
+    </section>
 
-    if (!res.ok) throw new Error("Recherche impossible");
-    return res.json();
-  }
+    <!-- RÉSULTATS -->
+    <div id="results" class="tools-results"></div>
+
+  </main>
 
 
-  /* ============================================================
-     Rendu des résultats
-  ============================================================ */
-  function renderResults(list, limit = 200) {
-    const box = document.querySelector("#results");
-
-    if (!list.length) {
-      box.innerHTML = `<p>Aucun résultat.</p>`;
-      return;
+  <!-- ===== JAVASCRIPT ===== -->
+  <script type="module">
+    async function search(q, annee) {
+      const res = await fetch(`/api/search?annee=${encodeURIComponent(annee)}&q=${encodeURIComponent(q)}`);
+      if (!res.ok) throw new Error("Recherche impossible");
+      return res.json();
     }
 
-    const shown = list.slice(0, limit);
+    function setStatus(msg, type = "info") {
+      const s = document.querySelector("#status");
+      s.textContent = msg;
+      s.dataset.type = type;
+    }
 
-    box.innerHTML = shown.map(r => `
-      <div style="border:1px solid #eee;border-radius:10px;padding:10px;margin-bottom:8px">
-        <div><strong>${r.mention}</strong></div>
-        <div style="color:#666">${r.etab}</div>
-        <div style="font-size:12px;margin:4px 0">
-          ID : <code>${r.id}</code>
-        </div>
+    function renderResults(arr, limit = 200) {
+      const box = document.querySelector("#results");
+      if (!arr.length) {
+        box.innerHTML = `<p class="no-result">Aucun résultat pour cette recherche.</p>`;
+        return;
+      }
 
-        <div style="display:flex;gap:8px;margin-top:6px">
-          <a href="/?id=${encodeURIComponent(r.id)}" style="text-decoration:none">
-            <button>Ouvrir dans le viewer</button>
-          </a>
+      const shown = arr.slice(0, limit);
 
-          <button class="copy" data-id="${r.id}">Copier l’ID</button>
-        </div>
-      </div>
-    `).join("");
+      box.innerHTML = shown.map(r => `
+                <div class="result-card">
+                    <strong>${r.mention}</strong>
+                    <small>${r.etab}</small>
+                    <div class="card-buttons">
+                        <a href="/?id=${encodeURIComponent(r.id)}">
+                            <button>Voir la fiche</button>
+                        </a>
+                        <button class="copy" data-id="${r.id}">Copier l’ID</button>
+                    </div>
+                </div>
+            `).join("");
 
-    // boutons "Copier l’ID"
-    box.querySelectorAll(".copy").forEach(btn => {
-      btn.addEventListener("click", async () => {
-        await navigator.clipboard.writeText(btn.dataset.id);
-        setStatus("ID copié ✔️");
+      box.querySelectorAll(".copy").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          await navigator.clipboard.writeText(btn.dataset.id);
+          setStatus("ID copié ✔️");
+        });
       });
+    }
+
+    // Événement du bouton
+    document.querySelector("#btnSearch").addEventListener("click", async () => {
+      const q = document.querySelector("#q").value.trim();
+      const annee = document.querySelector("#annee").value;
+      setStatus("Recherche…");
+      const arr = await search(q, annee);
+      setStatus(`${arr.length} résultat(s) trouvé(s).`);
+      renderResults(arr, 200);
     });
-  }
 
-
-  /* ============================================================
-     Affichage du message de statut
-  ============================================================ */
-  function setStatus(msg, type = "info") {
-    const s = document.querySelector("#status");
-    s.textContent = msg;
-    s.dataset.type = type;
-  }
-
-
-  /* ============================================================
-     EVENT : Recherche manuelle
-  ============================================================ */
-  document.querySelector("#btnSearch").addEventListener("click", async () => {
-    const query = document.querySelector("#q").value.trim();
-    const year  = document.querySelector("#annee").value;
-
-    setStatus(query ? "Recherche…" : "Chargement complet…", "loading");
-
-    const results = await search(query, year);
-
-    setStatus(`${results.length} résultat(s).`);
-    renderResults(results);
-  });
-
-
-  /* ============================================================
-     EVENT : Chargement initial → afficher tout
-  ============================================================ */
-  window.addEventListener("DOMContentLoaded", async () => {
-    const year = document.querySelector("#annee").value;
-
-    setStatus("Chargement complet…", "loading");
-
-    const results = await search("", year);
-
-    renderResults(results);
-    setStatus(`${results.length} résultat(s) trouvés (affichés : 200)`);
-  });
-
-</script>
+    // Chargement initial
+    window.addEventListener("DOMContentLoaded", async () => {
+      const annee = document.querySelector("#annee").value;
+      setStatus("Chargement des formations…");
+      const arr = await search("", annee);
+      setStatus(`${arr.length} formations listées (200 affichées).`);
+      renderResults(arr, 200);
+    });
+  </script>
 
 </body>
+
 </html>

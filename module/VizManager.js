@@ -1,10 +1,12 @@
 // module/VizManager.js
 export const VizManager = {
-
+  
   /* ============================================================================
      RENDU COMPARATIF 2023 / 2024
   ============================================================================ */
   renderComparatif(selector, payload) {
+    console.log("PAYLOAD IDENTITE =", payload.identite);
+
     const root = document.querySelector(selector);
     const fiche = document.querySelector(".fiche-master");
     if (!root || !fiche) return;
@@ -50,22 +52,25 @@ export const VizManager = {
     /* ======================= Injection HTML ======================= */
     root.innerHTML = kpis + chart;
 
+    renderSimilarMasters(payload);
+
     /* ======================= Redirection MonMaster ======================= */
     // Récupérer l'id de la formation depuis l'URL (?id=...)
     const params = new URLSearchParams(window.location.search);
     const formationId = params.get("id");
 
     const btn = document.getElementById("btn-monmaster");
+    if (btn) {
+      btn.addEventListener("click", () => {
+        if (!formationId) {
+          alert("Impossible d’ouvrir la page MonMaster : aucun id de formation dans l’URL.");
+          return;
+        }
 
-    btn.addEventListener("click", () => {
-      if (!formationId) {
-        alert("Impossible d’ouvrir la page MonMaster : aucun id de formation dans l’URL.");
-        return;
-      }
-
-      const url = `https://monmaster.gouv.fr/formation?rechercheBrut=${encodeURIComponent(formationId)}`;
-      window.open(url, "_blank"); // ouvre dans un nouvel onglet
-    });
+        const url = `https://monmaster.gouv.fr/formation?rechercheBrut=${encodeURIComponent(formationId)}`;
+        window.open(url, "_blank");
+      });
+    }
   }
 
 
@@ -74,7 +79,7 @@ export const VizManager = {
 
 
 /* ============================================================================
-   TEMPLATES SIMPLES (lisibles pour les étudiants)
+   TEMPLATES SIMPLES 
 ============================================================================ */
 
 /** Affiche un bloc KPI */
@@ -129,4 +134,48 @@ function barRect(value, max, x, pad, bw, H) {
     <rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="6"></rect>
     <text x="${x + bw / 2}" y="${y - 6}">${value}</text>
   `;
+}
+
+function renderSimilarMasters(payload) {
+  const box = document.querySelector("#similaires");
+  if (!box) return;
+
+  // Ton vrai ID formation → c'est "mention" (oui…)
+  const currentId = payload.identite?.mention || "";
+
+  // La seule info exploitable = discipline
+  const discipline = payload.identite?.discipline || "";
+
+  if (!discipline) {
+    box.innerHTML = "<p>Aucune donnée pour trouver des masters similaires.</p>";
+    return;
+  }
+
+  // On prend juste un mot-clé propre (ex : "Economie")
+  const keyword = discipline.split(",")[0].split(" ")[0];
+
+  box.innerHTML = "<p>Recherche de masters similaires...</p>";
+
+  fetch(`/api/search?q=${encodeURIComponent(keyword)}&annee=2024`)
+    .then(res => res.json())
+    .then(list => {
+      const sims = list
+        .filter(m => m.id !== currentId)  // Exclure master actuel
+        .slice(0, 6);                      // Max 6 similaires
+
+      if (!sims.length) {
+        box.innerHTML = "<p>Aucun master similaire trouvé.</p>";
+        return;
+      }
+
+      box.innerHTML = sims.map(m => `
+        <div class="similaire-card" onclick="location.href='/?id=${m.id}'">
+          <strong>${m.mention}</strong><br>
+          <span style="color:#777">${m.etab}</span>
+        </div>
+      `).join("");
+    })
+    .catch(() => {
+      box.innerHTML = "<p>Erreur lors du chargement.</p>";
+    });
 }
