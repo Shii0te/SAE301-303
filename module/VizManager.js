@@ -165,7 +165,7 @@ function renderSimilarMasters(payload) {
       }
 
       box.innerHTML = sims.map(m => `
-        <li class="result-card" onclick="location.href='/?id=${m.id}'">
+        <li class="result-card" onclick="location.href='/master?id=${m.id}'">
           <div class="card-header">
           <img src="https://monmaster.gouv.fr/api/logo/${m.uai}" class="logo-result"/>
           </div>

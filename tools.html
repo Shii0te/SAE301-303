@@ -10,10 +10,10 @@
 <body>
   <header>
     <nav>
-      <a href="/accueil"><img src="./images/logo-alt.png" alt="logo master plus" width="150" /></a>
+      <a href="/"><img src="./images/logo-alt.png" alt="logo master plus" width="150" /></a>
       <ul>
         <li>
-          <a href="/accueil">Accueil</a>
+          <a href="/">Accueil</a>
         </li>
         <li>
           <a id="active-page" href="/tools">Master</a>
@@ -103,7 +103,7 @@
                     </div>
                     <strong>${r.mention}</strong>
                     <small>${r.etab}</small>
-                    <a class="card-button" href="/?id=${encodeURIComponent(r.id)}">
+                    <a class="card-button" href="/master?id=${encodeURIComponent(r.id)}">
                       <button>Voir la fiche</button>
                     </a>
                 </li>

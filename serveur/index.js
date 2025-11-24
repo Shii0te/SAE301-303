@@ -34,12 +34,12 @@ app.get("/tools", (_, res) => {
   res.sendFile(path.join(__dirname, "..", "tools.html"));
 });
 
-app.get("/", (_, res) => {
+app.get("/master", (_, res) => {
   res.sendFile(path.join(__dirname, "..", "index.html"));
 });
 
 
-app.get("/accueil", (_, res) => {
+app.get("/", (_, res) => {
   res.sendFile(path.join(__dirname, "..", "accueil.html"));
 });
 
