@@ -49,34 +49,47 @@ function findCol(headers, ...tokens) {
    2) MAPPING MINIMAL POUR LA RECHERCHE
 ============================================================================ */
 
+function pick(headers, candidates) {
+  const Hnorm = headers.map(h => norm(h));
+  for (const label of candidates) {
+    const idx = Hnorm.indexOf(norm(label));
+    if (idx !== -1) return headers[idx];
+  }
+  return null;
+}
+
 function buildSearchMap(headers) {
-  const col = (specs) => {
-    for (const s of specs) {
-      if (Array.isArray(s)) {
-        const detected = findCol(headers, ...s);
-        if (detected) return detected;
-      }
-      if (typeof s === "string" && headers.includes(s)) return s;
-    }
-    return null;
-  };
-
   return {
-    id: col([
-      "id_formation",
-      "Identifiant de la formation",
-      "ifc",
+    // ID technique (clé d'accès au backend)
+    id: pick(headers, [
+      "Identifiant de la formation",   // officiel 2024
+      "id_formation",                  // fallback
+      "ifc"                            // identifiant 2023
     ]),
 
-    mention: col([["mention"], "mention"]),
-
-    etab: col([
-      ["libelle", "etablissement"],
-      ["libelle", "etablissement"],
-      "eta_nom",
+    // Nom lisible du master
+    mention: pick(headers, [
+      "Intitulé de la mention",        // NOM humain 2024
+      "mention"                        // 2023
     ]),
+
+    // Nom lisible de l'établissement
+    etab: pick(headers, [
+      "Libellé de l'établissement",                // 2024
+      "Libellé de l'établissement aujourd'hui",    // fallback
+      "eta_nom"                                    // 2023
+    ]),
+
+    // UAI établissement
+    uai: pick(headers, [
+      "eta_uai",
+      "Identifiant de l'établissement"
+    ]),
+
+
   };
 }
+
 
 
 /* ============================================================================
@@ -96,18 +109,37 @@ searchRoute.get("/", async (req, res) => {
     const headers = Object.keys(rows[0]);
     const K = buildSearchMap(headers);
 
+    if (!K.mention) K.mention = "Intitulé de la mention";
+    if (!K.etab) K.etab = "Libellé de l'établissement";
+    if (!K.uai) K.uai = "Identifiant de l'établissement";
+
+
     if (!K.id) return res.json([]);
 
     const tokens = query.split(/\s+/).filter(Boolean);
     const results = [];
 
     for (const r of rows) {
-      const mention = r[K.mention] || "";
-      const etab = r[K.etab] || "";
+      const mention =
+        (K.mention && r[K.mention]) ||
+        r["Intitulé de la mention"] ||
+        r["mention"] ||
+        "";
+
+      const etab =
+        (K.etab && r[K.etab]) ||
+        r["Libellé de l'établissement"] ||
+        r["eta_nom"] ||
+        "";
+
       const text = norm(`${mention} ${etab}`);
 
+
+
       // si query non vide : on vérifie que tous les mots sont dans haystack
-      if (!allMode && !tokens.every((t) => text.includes(t))) continue;
+      if (!allMode) {
+        if (!tokens.every((t) => text.includes(t))) continue;
+      }
 
       const id = String(r[K.id] || "").trim();
       if (!id) continue;
@@ -116,7 +148,9 @@ searchRoute.get("/", async (req, res) => {
         id,
         mention: mention || "(mention inconnue)",
         etab: etab || "(établissement inconnu)",
+        uai: r[K.uai] || "",    // <-- AJOUT ESSENTIEL
       });
+
 
       if (results.length >= 200) break;
     }

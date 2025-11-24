@@ -8,34 +8,64 @@
 </head>
 
 <body>
-
+  <header>
+    <nav>
+      <a href="/accueil"><img src="./images/logo-alt.png" alt="logo master plus" width="150" /></a>
+      <ul>
+        <li>
+          <a href="/accueil">Accueil</a>
+        </li>
+        <li>
+          <a id="active-page" href="/tools">Master</a>
+        </li>
+      </ul>
+    </nav>
+  </header>
   <!-- ===== CONTENU PRINCIPAL ===== -->
   <main class="tools-container">
     <section class="tools-intro">
-      <h2 class="tools-title">Rechercher un Master</h2>
+
+      <h1 class="tools-title">Rechercher un Master</h1>
       <p class="tools-description">
         Tape quelques mots clés (ex : <strong>informatique paris</strong>) et choisis l’année.
         Clique ensuite sur un résultat pour consulter sa fiche complète.
       </p>
 
-      <!-- BARRE DE RECHERCHE -->
-      <div class="tools-search-bar">
-        <input id="q" placeholder="Rechercher une formation…" />
-        <select id="annee">
-          <option value="2024">2024</option>
-          <option value="2023">2023</option>
-        </select>
-        <button id="btnSearch">Rechercher</button>
+      <div class="tools-search-wrapper">
+
+        <!-- Barre blanche arrondie -->
+        <div class="tools-search-bar">
+          <img src="./images/loupe.png" width="22" class="search-icon">
+          <input id="q" placeholder="Rechercher un master…" />
+        </div>
+
+        <!-- Ligne de filtres en dessous (comme la maquette) -->
+        <div class="tools-filters">
+          <!-- Select année = vrai filtre, utilisé par le JS -->
+          <select id="annee" class="filter-chip filter-select">
+            <option value="2024">Année 2024</option>
+            <option value="2023">Année 2023</option>
+          </select>
+
+          <!-- Filtres visuels (facultatifs, décoratifs) -->
+          <button type="button" class="filter-chip">Filtre X</button>
+          <button type="button" class="filter-chip">Filtre X</button>
+          <button type="button" class="filter-chip">Filtre X</button>
+          <button type="button" class="filter-chip">Filtre X</button>
+        </div>
+
+        <!-- Bouton principal -->
+        <button id="btnSearch" class="tools-search-btn">Rechercher</button>
+
       </div>
-
-
-      <!-- STATUS -->
-      <div id="status" class="tools-status"></div>
 
     </section>
 
+
+    <!-- STATUS -->
+    <div id="status" class="tools-status"></div>
     <!-- RÉSULTATS -->
-    <div id="results" class="tools-results"></div>
+    <ul id="results" class="tools-results"></ul>
 
   </main>
 
@@ -43,10 +73,13 @@
   <!-- ===== JAVASCRIPT ===== -->
   <script type="module">
     async function search(q, annee) {
-      const res = await fetch(`/api/search?annee=${encodeURIComponent(annee)}&q=${encodeURIComponent(q)}`);
+      const url = `/api/search?q=${encodeURIComponent(q)}&annee=${encodeURIComponent(annee)}`;
+      const res = await fetch(url);
+
       if (!res.ok) throw new Error("Recherche impossible");
       return res.json();
     }
+
 
     function setStatus(msg, type = "info") {
       const s = document.querySelector("#status");
@@ -64,16 +97,16 @@
       const shown = arr.slice(0, limit);
 
       box.innerHTML = shown.map(r => `
-                <div class="result-card">
+                <li class="result-card">
+                    <div class="card-header">
+                      <img src="https://monmaster.gouv.fr/api/logo/${r.uai}" class="logo-result" />
+                    </div>
                     <strong>${r.mention}</strong>
                     <small>${r.etab}</small>
-                    <div class="card-buttons">
-                        <a href="/?id=${encodeURIComponent(r.id)}">
-                            <button>Voir la fiche</button>
-                        </a>
-                        <button class="copy" data-id="${r.id}">Copier l’ID</button>
-                    </div>
-                </div>
+                    <a class="card-button" href="/?id=${encodeURIComponent(r.id)}">
+                      <button>Voir la fiche</button>
+                    </a>
+                </li>
             `).join("");
 
       box.querySelectorAll(".copy").forEach(btn => {

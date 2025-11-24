@@ -25,10 +25,9 @@ export const VizManager = {
     const delta = (a, b) => (a === 0 ? 0 : ((b - a) / a) * 100);
 
     /* ======================= Fiche Master ======================= */
-    fiche.querySelector("#nom-master").textContent = payload.identite?.mention || "—";
-    fiche.querySelector("#region").textContent = payload.identite?.region || "—";
-    fiche.querySelector("#domaine").textContent = payload.identite?.discipline || "—";
+    fiche.querySelector("#nom-master").textContent = payload.identite?.discipline || "—";
     fiche.querySelector("#infos").textContent = payload.identite?.etablissement || "—";
+    fiche.querySelector("#mention").textContent = payload.identite?.mention || "—";
 
     /* ======================= Bloc indicateurs ======================= */
     const kpis = `
@@ -140,10 +139,7 @@ function renderSimilarMasters(payload) {
   const box = document.querySelector("#similaires");
   if (!box) return;
 
-  // Ton vrai ID formation → c'est "mention" (oui…)
-  const currentId = payload.identite?.mention || "";
-
-  // La seule info exploitable = discipline
+  const currentId = payload.formation_id; // toujours fiable
   const discipline = payload.identite?.discipline || "";
 
   if (!discipline) {
@@ -151,7 +147,7 @@ function renderSimilarMasters(payload) {
     return;
   }
 
-  // On prend juste un mot-clé propre (ex : "Economie")
+  // On prend un mot-clé exploitable comme ancre de similarité
   const keyword = discipline.split(",")[0].split(" ")[0];
 
   box.innerHTML = "<p>Recherche de masters similaires...</p>";
@@ -160,8 +156,8 @@ function renderSimilarMasters(payload) {
     .then(res => res.json())
     .then(list => {
       const sims = list
-        .filter(m => m.id !== currentId)  // Exclure master actuel
-        .slice(0, 6);                      // Max 6 similaires
+        .filter(m => m.id !== currentId)  // exclure le master actuel
+        .slice(0, 6);
 
       if (!sims.length) {
         box.innerHTML = "<p>Aucun master similaire trouvé.</p>";
@@ -169,13 +165,17 @@ function renderSimilarMasters(payload) {
       }
 
       box.innerHTML = sims.map(m => `
-        <div class="similaire-card" onclick="location.href='/?id=${m.id}'">
-          <strong>${m.mention}</strong><br>
-          <span style="color:#777">${m.etab}</span>
-        </div>
+        <li class="result-card" onclick="location.href='/?id=${m.id}'">
+          <div class="card-header">
+          <img src="https://monmaster.gouv.fr/api/logo/${m.uai}" class="logo-result"/>
+          </div>
+          <strong>${m.mention}</strong>
+          <small>${m.etab}</small>
+        </li>
       `).join("");
     })
-    .catch(() => {
+    .catch(err => {
+      console.error("SIMILAIRES ERROR:", err);
       box.innerHTML = "<p>Erreur lors du chargement.</p>";
     });
 }

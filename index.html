@@ -16,6 +16,19 @@
 </head>
 
 <body>
+  <header>
+    <nav>
+      <a href="/accueil"><img src="./images/logo-alt.png" alt="logo master plus" width="150" /></a>
+      <ul>
+        <li>
+          <a href="/accueil">Accueil</a>
+        </li>
+        <li>
+          <a id="active-page" href="/tools">Master</a>
+        </li>
+      </ul>
+    </nav>
+  </header>
   <main id="app">
 
     <!-- ================= FICHE MASTER ================= -->
@@ -24,18 +37,20 @@
 
         <!-- Colonne gauche : infos -->
         <div class="infos-master">
-          <h2 id="nom-master">Nom du Master</h2>
+          <h1 id="nom-master">Nom du Master</h1>
 
-          <p><strong>Région :</strong> <span id="region">—</span></p>
-          <p><strong>Domaine d’activité :</strong> <span id="domaine">—</span></p>
-          <p><strong>Informations clés :</strong> <span id="infos">—</span></p>
+          <p><strong>mention :</strong> <span id="mention">—</span></p>
+          <div class="etab">
+            <img src="/images/etab.png" alt="logo établissement">
+            <p><strong>Informations clés :</strong> <span id="infos">—</span></p>
+          </div>
 
-          <button id="btn-monmaster" class="btn-postuler">Postuler sur MonMaster</button>
+          
         </div>
 
         <!-- Colonne droite : logo -->
         <div class="badge-master">
-          <img src="./images/diplome-logo.png" alt="Diplôme national de master" />
+          <button id="btn-monmaster" class="btn-postuler">Postuler sur MonMaster</button>
         </div>
 
       </div>
@@ -43,12 +58,12 @@
 
 
     <!-- ================== ZONES DYNAMIQUES ================== -->
-    <!-- <section class="infos-master" id="status" aria-live="polite"></section> -->
+    <!-- <section class="infos-master" id="status" aria-live="polite"></section>  -->
     <section id="viz"></section>
 
     <section id="similaires-container">
       <h2>Masters similaires</h2>
-      <div id="similaires"></div>
+      <ul id="similaires"></ul>
     </section>
 
 

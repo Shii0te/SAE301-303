@@ -7,20 +7,18 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-
 /* ============================================================================
-   1) CACHE (pour éviter de recharger les CSV à chaque requête)
+   CACHE
 ============================================================================ */
 
 const cache = {
-  rows: new Map(),  // annee → tableau brut du CSV
-  cols: new Map(),  // annee → mapping des colonnes
-  ids: new Map(),   // annee → Map(idFormation → ligne CSV)
+  rows: new Map(),
+  cols: new Map(),
+  ids: new Map(),
 };
 
-
 /* ============================================================================
-   2) UTILITAIRES SIMPLES
+   UTILS
 ============================================================================ */
 
 const csvPath = (year) =>
@@ -37,118 +35,90 @@ function loadCSV(year) {
   });
 }
 
-// normalisation en minuscules sans accents
-const norm = (s = "") =>
-  String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-
-// essayer de trouver une colonne contenant certains mots
-function findCol(headers, ...tokens) {
-  const T = tokens.map(norm);
-  for (const h of headers) {
-    const H = norm(h);
-    if (T.every((t) => H.includes(t))) return h;
-  }
-  return null;
-}
-
-// Nombre FR (1,25 → 1.25)
 const parseNum = (v) => {
   if (!v) return 0;
   const n = Number(String(v).replace(",", "."));
   return Number.isFinite(n) ? n : 0;
 };
 
-
 /* ============================================================================
-   3) DETECTION AUTOMATIQUE DES COLONNES
+   MAPPING 2023 / 2024
 ============================================================================ */
 
-function buildColumnMap(headers) {
-  const has = (c) => headers.includes(c);
-  const col = (options) => {
-    for (const opt of options) {
-      if (Array.isArray(opt)) {
-        const detected = findCol(headers, ...opt);
-        if (detected) return detected;
-      } else if (typeof opt === "string" && has(opt)) {
-        return opt;
-      }
-    }
-    return null;
-  };
+function buildColumnMap(headers, year) {
+  const H = (name) => (headers.includes(name) ? name : null);
 
+  if (year === 2023) {
+    return {
+      etab: H("eta_nom"),
+      mention: H("mention"),
+      parcours: H("parcours"),
+      academie: H("acad_lib"),
+      region: H("acad_reg_lib"),
+      discipline: H("disci_lib"),
+
+      id_formation: H("ifc"),
+      id_mention: H("inm"),
+      id_parcours: H("inmp"),
+      uai: H("eta_uai"),
+
+      n_can_pp: H("n_can"),
+      n_can_pc: null,
+      n_prop_total: H("n_prop"),
+      n_acc_total: H("n_accept"),
+      rang_pp: H("rang_dernier"),
+    };
+  }
+
+  // ===== MAPPING 2024 =====
   return {
-    // --- ETABLISSEMENT / MENTION / PARCOURS OK ---
-    etab: col([
-      "Libellé de l'établissement",
-      ["libellé", "etablissement"],
-    ]),
-    mention: col([
-      "Intitulé de la mention",
-      ["intitulé", "mention"],
-    ]),
-    parcours: col([
-      "Intitulé du parcours",
-      ["intitulé", "parcours"],
-    ]),
+    etab: H("Libellé de l'établissement"),
 
-    // --- ICI LE FIX : on ne passe plus par des tokens ambigus ---
-    academie: col([
-      "Académie de l'établissement",
-      "Académie du lieu de formation",   // si jamais pour une autre année
-    ]),
-    region: col([
-      "Région académique de l'établissement",
-      "Région académique du lieu de formation",
-    ]),
+    mention: H("Intitulé de la mention"),
+    parcours: H("Intitulé du parcours"),
 
-    discipline: col([
-      "Discipline de la formation",
-      "Discipline",
-      ["discipline"],
-    ]),
+    academie: H("Académie de l'établissement"),
+    region: H("Région académique de l'établissement"),
 
-    id_formation: col([
-      "Identifiant de la formation",
-      ["identifiant", "formation"],
-      "id_formation",
-    ]),
+    discipline:
+      H("Discipline") ||                      // colonne texte
+      H("Discipline de la formation"),
 
-    // le reste de ton mapping n_can / n_prop / n_acc / rang_pp comme avant…
-    n_can_pp: col([["confirmé", "phase principale"], "n_can"]),
-    n_can_pc: col([["confirmé", "phase complémentaire"]]),
-    n_prop_total: col([["reçu", "proposition"], "n_prop"]),
-    n_acc_total: col([["accepté", "proposition"], "n_accept"]),
-    rang_pp: col([["rang", "principal"], "rang_dernier"]),
+    id_formation: H("Identifiant de la formation"),
+    id_mention: H("Identifiant navette de mention"),
+    id_parcours: H("Identifiant navette de parcours"),
+
+    uai: H("Identifiant de l'établissement"),
+
+    n_can_pp: H("Effectif de candidats ayant confirmé une candidature en phase principale"),
+    n_can_pc: H("Effectif de candidats ayant confirmé une candidature en phase complémentaire"),
+
+    n_prop_total: H("Effectif de candidats ayant reçu une proposition pour une candidature formulée en phase principale"),
+    n_acc_total: H("Effectif de candidats ayant accepté une proposition d'admission pour une candidature formulée en phase principale"),
+
+    rang_pp: H("Rang du dernier appelé en phase principale"),
   };
 }
 
 
-
-
 /* ============================================================================
-   4) CHARGEMENT / CONSTRUCTION DU CACHE
+   CHARGEMENT DU CACHE
 ============================================================================ */
 
 async function ensure(year) {
-  // charger les lignes CSV
   if (!cache.rows.has(year)) {
     const rows = await loadCSV(year);
     cache.rows.set(year, rows);
   }
 
-  // détecter les colonnes
   if (!cache.cols.has(year)) {
-    const rows = cache.rows.get(year);
-    const headers = Object.keys(rows[0] || {});
-    cache.cols.set(year, buildColumnMap(headers));
+    const headers = Object.keys(cache.rows.get(year)[0] || {});
+    cache.cols.set(year, buildColumnMap(headers, year));
   }
 
-  // index par ID
   if (!cache.ids.has(year)) {
-    const rows = cache.rows.get(year);
     const idx = new Map();
-    for (const r of rows) {
+    for (const r of cache.rows.get(year)) {
       const id =
         r["Identifiant de la formation"] ||
         r["id_formation"] ||
@@ -159,59 +129,53 @@ async function ensure(year) {
   }
 }
 
-
 /* ============================================================================
-   5) API : RÉCUPÉRER UNE FORMATION
+   API : MASTER PAR ANNÉE
 ============================================================================ */
 
-export async function getMasterData(formationId, year) {
+export async function getMasterData(id, year) {
   year = Number(year);
   await ensure(year);
 
-  const rows = cache.rows.get(year);
   const K = cache.cols.get(year);
-  const idx = cache.ids.get(year);
+  const row = cache.ids.get(year).get(String(id).trim());
 
-  const row = idx.get(String(formationId).trim());
-  if (!row) return { error: "Master non trouvé", id: formationId, year };
+  if (!row)
+    return { error: "Master non trouvé", id, year };
 
   const get = (key) => (K[key] ? row[K[key]] : "");
   const getNum = (key) => parseNum(get(key));
 
-  // identité
-  const identite = {
-    etablissement: get("etab"),
-    mention: get("mention"),
-    parcours: get("parcours"),
-    academie: get("academie"),
-    region: get("region"),
-    discipline: get("discipline"),
-  };
-
-  // stats
-  const n_can = getNum("n_can_pp") + getNum("n_can_pc");
-  const n_prop = getNum("n_prop_total");
-  const n_acc = getNum("n_acc_total");
+  const n_pp = getNum("n_can_pp");
+  const n_pc = getNum("n_can_pc");
+  const n_can = n_pp + (n_pc || 0);
 
   return {
-    formation_id: String(formationId),
+    formation_id: String(id),
     annee: year,
-    identite,
+    identite: {
+      etablissement: get("etab"),
+      mention: get("mention"),
+      parcours: get("parcours"),
+      academie: get("academie"),
+      region: get("region"),
+      discipline: get("discipline"),
+      uai: get("uai"),
+    },
     stats: {
       candidatures: {
         n_can,
-        n_prop,
-        n_acc,
-        taux_adm: n_can ? n_acc / n_can : 0,
+        n_prop: getNum("n_prop_total"),
+        n_acc: getNum("n_acc_total"),
+        taux_adm: n_can ? getNum("n_acc_total") / n_can : 0,
         rang_dernier: getNum("rang_pp"),
       },
     },
   };
 }
 
-
 /* ============================================================================
-   6) API : COMPARATIF 2023 / 2024
+   API : COMPARATIF 2023–2024
 ============================================================================ */
 
 export async function getMasterComparatif(id) {
@@ -232,8 +196,7 @@ export async function getMasterComparatif(id) {
 
   const evoTx =
     d23.stats?.candidatures?.taux_adm
-      ? ((d24.stats.candidatures.taux_adm -
-        d23.stats.candidatures.taux_adm) /
+      ? ((d24.stats.candidatures.taux_adm - d23.stats.candidatures.taux_adm) /
         d23.stats.candidatures.taux_adm) *
       100
       : 0;

@@ -38,6 +38,11 @@ app.get("/", (_, res) => {
   res.sendFile(path.join(__dirname, "..", "index.html"));
 });
 
+
+app.get("/accueil", (_, res) => {
+  res.sendFile(path.join(__dirname, "..", "accueil.html"));
+});
+
 // --- Lancement du serveur ---
 app.listen(PORT, () => {
   console.log(`✅ Serveur lancé sur http://localhost:${PORT}`);

@@ -5,10 +5,12 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  list-style: none;
 }
 
 :root {
   --primary: #e41f74;
+  --secondary: #233c84;
   --white: #ffffff;
   --text: #222222;
   --text-light: #666666;
@@ -22,6 +24,108 @@ body {
   background: var(--page-bg);
   color: var(--text);
   line-height: 1.6;
+}
+
+/* ============================================================================
+   HEADERS
+============================================================================ */
+header {
+  color: var(--text);
+  background-size: cover;
+  padding: 16px 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 50px;
+
+}
+
+header nav {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+header img {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+header ul {
+  display: flex;
+  align-items: center;
+}
+
+header ul a {
+  margin-left: 24px;
+  text-decoration: none;
+  color: var(--text);
+  font-weight: 600;
+  transition: 0.2s ease;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.25s ease;
+}
+
+header ul a#active-page,
+header ul a:hover {
+  color: var(--white);
+  background-color: var(--primary);
+}
+
+.accueil-body ul a#active-page {
+  color: var(--primary);
+  background-color: var(--white);
+
+}
+
+.accueil-body ul a:hover {
+  color: var(--primary-dark);
+  background-color: var(--white);
+
+  transform: translateY(-2px);
+}
+
+header h1 {
+  font-size: 3.6rem;
+  font-weight: 900;
+  text-align: center;
+  margin-top: 8rem;
+  color: var(--white) ;
+}
+
+header p {
+  font-size: 1.5rem;
+  text-align: center;
+  font-weight: lighter;
+  width: 60%;
+  color: var(--white) ;
+}
+
+header button {
+  margin-top: 24px;
+  padding: 14px 32px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--white);
+  background: var(--primary);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.accueil-body {
+  background: url(../images/fond.png) no-repeat center center;
+  background-size: cover;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  min-height: 100vh;
+  color: var(--white) ;
+}
+
+.accueil-body a{
+  color: var(--white);
 }
 
 /* ============================================================================
@@ -66,20 +170,44 @@ main#app {
 }
 
 .infos-master p {
-  margin-bottom: 6px;
   font-size: 1rem;
+  margin-top: 8px;
 }
 
 .infos-master strong {
   font-weight: 600;
 }
 
+.etab {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+}
+
+.etab img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  filter:brightness(0) invert();
+}
+
+
+
+/* --------- Colonne droite : logo / visuel --------- */
+
+.badge-master {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-right: 40px; ;
+}
+
 .btn-postuler {
-  background: var(--white);
-  color: var(--primary);
+  background: var(--secondary);
+  color: var(--white);
   border: none;
-  border-radius: 999px;
-  padding: 10px 24px;
+  border-radius: 5px;
+  padding: 12px 24px;
   margin-top: 16px;
   font-weight: 600;
   font-size: 0.95rem;
@@ -91,26 +219,6 @@ main#app {
   background: #fafafa;
   transform: translateY(-2px);
 }
-
-/* --------- Colonne droite : logo / visuel --------- */
-
-.badge-master {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: var(--white);
-  width: 200px;
-  height: 200px;
-  border-radius: 100%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.badge-master img {
-  width: 120px;
-  height: 120px;
-  object-fit: contain;
-}
-
 /* ============================================================================
    ZONES SUIVANTES (status + visualisations)
    → fond blanc, pleine largeur, contenu centré visuellement
@@ -120,7 +228,10 @@ main#app {
 #status {
   font-size: 0.95rem;
   min-height: 20px;
-  color: var(--white);
+  color: var(--text);
+
+  max-width: 1300px;
+  margin: 0 auto;
 }
 
 #viz {
@@ -147,7 +258,7 @@ main#app {
 }
 
 .kpis div {
-  background: rgba(228, 31, 116, 0.18);
+  background: #e41f742e;
   backdrop-filter: blur(3px);
   padding: 14px;
   border-radius: 12px;
@@ -236,6 +347,14 @@ main#app {
   transform: translateY(-3px);
 }
 
+.logo-similaire {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  margin-bottom: 8px;
+}
+
+
 /* ============================================================================
    OUTILS / DIVERS
 ============================================================================ */
@@ -247,124 +366,233 @@ main#app {
 
 
 /* ============================================================================
-   PAGE TOOLS — OUTILS DE RECHERCHE DE MASTERS SIMILAIRES
+   PAGE TOOLS — ZONE BLEUE (BLOC PRINCIPAL)
 ============================================================================ */
+
+.tools-intro {
+  background: var(--secondary);
+  /* bleu foncé comme la maquette */
+  padding: 50px 60px;
+  border-radius: 20px;
+  margin: 40px auto;
+  max-width: 1300px;
+  color: white;
+}
+
+/* Titre et description */
 .tools-title {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: var(--white);
+  font-size: 2.4rem;
+  font-weight: 800;
   margin-bottom: 10px;
+  text-align: center;
 }
 
 .tools-description {
-  margin-bottom: 24px;
-  color: var(--white);
+  text-align: center;
+  font-size: 1.1rem;
+  margin-bottom: 40px;
+  opacity: 0.9;
 }
 
 .tools-search-bar {
+  width: 80%;
+  margin: 0 auto 30px auto;
   display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
+  border-radius: 80px;
+  background: white;
+  padding: 14px 22px;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.tools-search-bar input,
-.tools-search-bar select {
+.tools-search-bar input {
   flex: 1;
-  padding: 12px 14px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  background: var(--white);
-  font-size: 1rem;
+  border: none;
+  font-size: 1.1rem;
+  background: transparent;
+  outline: none;
+  color: #333;
 }
 
-.tools-search-bar button {
-  padding: 12px 22px;
+/* Sélecteur année */
+.tools-search-bar select {
   border: none;
-  border-radius: 6px;
-  background: var(--white);
-  color: var(--primary);
-  font-weight: 600;
+  font-size: 1rem;
+  background: transparent;
+  padding: 4px 8px;
+}
+
+/* Bouton rechercher */
+.tools-search-bar button {
+  background: var(--primary);
+  border: none;
+  padding: 12px 28px;
+  border-radius: 30px;
+  font-weight: 700;
+  color: white;
+  margin-left: 14px;
   cursor: pointer;
-  transition: 0.25s ease;
+  transition: 0.25s;
 }
 
 .tools-search-bar button:hover {
   background: var(--primary-dark);
-  color: var(--white);
   transform: translateY(-2px);
 }
 
-.tools-status {
-  margin: 10px 0;
-  color: #444;
-}
-
-.tools-intro {
-  font-size: 1rem;
-  background-color: var(--primary);
-  padding: 32px;
-}
-
+/* RÉSULTATS DE LA RECHERCHE */
 .tools-results {
-  margin: 20px auto;
-  max-width: 1100px;
+  margin: 40px auto;
+  max-width: 1300px;
   display: grid;
-  gap: 20px;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 32px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.card-header {
+  width: 100%;
+  height: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.logo-result {
+width: 100%;
+height: 100%;
+padding: 10px;
+object-fit: contain;
+margin-bottom: 10px;
+border: 1px #e2e2e27c solid;
+border-radius: 9px;
 }
 
 .result-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 18px;
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
   border: 1px solid #eee;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  text-align: left;
   transition: 0.25s ease;
+
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+
 }
 
 .result-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+  transform: translateY(-6px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
 }
 
 .result-card strong {
-  font-size: 1.1rem;
-  color: #111;
+  font-size: 1.2rem;
+  color: #e41f74;
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 700;
 }
 
 .result-card small {
-  display: block;
-  margin-top: 4px;
-  font-size: 0.9rem;
-  color: #777;
+  font-size: 0.95rem;
+  color: #333;
+  opacity: 0.7;
 }
 
-.card-buttons {
-  margin-top: 14px;
-  display: flex;
-  gap: 8px;
+/* Boutons dans les cards */
+
+.card-button {
+  align-self: end;
+  justify-self: end;
 }
 
-.card-buttons button {
+.card-button button{
   flex: 1;
-  padding: 8px 10px;
-  border-radius: 6px;
+  background: var(--primary);
   border: none;
-  background: #e41f74;
+  padding: 10px;
   color: white;
-  font-weight: 600;
+  font-weight: 700;
+  border-radius: 10px;
   cursor: pointer;
   transition: 0.2s;
 }
 
-.card-buttons button:hover {
-  background: #c41964;
+.card-button button:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
 }
 
+/* Texte si aucun résultat */
 .no-result {
-  font-size: 1rem;
-  color: #999;
+  font-size: 1.1rem;
+  color: #666;
+  text-align: center;
   padding-top: 20px;
+}
+
+.tools-search-wrapper {
+  width: 80%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.search-icon {
+  margin-inline: 4px;
+}
+
+.tools-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* pastilles de filtres */
+.filter-chip {
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: none;
+  background: #f1f1f1;
+  color: #333;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* select année stylé comme une pastille */
+.filter-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: none;
+}
+
+/* Bouton rechercher */
+.tools-search-btn {
+  width: 230px;
+  margin: 10px auto 0 auto;
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 50px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.25s;
+}
+
+.tools-search-btn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
 }
 
 /* ============================================================================
@@ -376,7 +604,7 @@ main#app {
     padding: 32px 24px;
   }
 
-  #status{
+  #status {
     color: white;
     background-color: none;
   }
@@ -397,11 +625,6 @@ main#app {
     max-width: 100%;
   }
 
-  .badge-master {
-    justify-content: center;
-    margin-top: 16px;
-  }
-
   /* ============================================================================
     PAGE TOOLS — OUTILS DE RECHERCHE DE MASTERS SIMILAIRES
   =========================================================================== */
@@ -416,4 +639,5 @@ main#app {
   .tools-search-bar button {
     width: 100%;
   }
+
 }
