@@ -1,11 +1,11 @@
 // module/VizManager.js
 export const VizManager = {
-  
+
   /* ============================================================================
      RENDU COMPARATIF 2023 / 2024
   ============================================================================ */
   renderComparatif(selector, payload) {
-    console.log("PAYLOAD IDENTITE =", payload.identite);
+
 
     const root = document.querySelector(selector);
     const fiche = document.querySelector(".fiche-master");
@@ -178,4 +178,40 @@ function renderSimilarMasters(payload) {
       console.error("SIMILAIRES ERROR:", err);
       box.innerHTML = "<p>Erreur lors du chargement.</p>";
     });
+}
+
+function renderMap(region) {
+  if (!window.simplemaps_countrymap) {
+    console.warn("SimpleMaps non chargé");
+    return;
+  }
+  if (!region) {
+    console.warn("Aucune région fournie pour la carte");
+    return;
+  }
+
+  const key = Object.keys(REGION_TO_CODE).find(k =>
+    region.toLowerCase().includes(k)
+  );
+
+  if (!key) {
+    console.warn("Région inconnue pour la carte :", region);
+    return;
+  }
+
+  const code = REGION_TO_CODE[key];
+
+  simplemaps_countrymap.hooks.ready = function () {
+
+    // Désactiver toutes les régions
+    for (const r in simplemaps_countrymap_mapdata.state_specific) {
+      simplemaps_countrymap_mapdata.state_specific[r].color = "#d0d0d0";
+    }
+
+    // Colorer la région cible
+    simplemaps_countrymap_mapdata.state_specific[code].color = "#e41f74";
+    simplemaps_countrymap_mapdata.state_specific[code].hover_color = "#c41964";
+
+    simplemaps_countrymap.load();
+  };
 }

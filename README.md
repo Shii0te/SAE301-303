@@ -392,7 +392,7 @@ Plus aucun bug d’identifiants mélangés.
 
 ## Cache intégré
 
-Lecture CSV** ****effectuée une seule fois**.
+Lecture CSV **effectuée une seule fois**.
 
 ## Index par`id_formation`
 
@@ -427,7 +427,7 @@ Wrap fetch API.
 
 ---
 
-# 7. Page Tools (Recherche)
+# 7. Page accueil.html (Accueil du site)
 
 Fonctionnalités :
 
@@ -439,28 +439,45 @@ Fonctionnalités :
 
 ---
 
-# 8. Maintenance
+# 8. Page tools.html (Recherche)
 
-## 8.1. Ajouter une année (2025…)
+Fonctionnalités :
+
+* Simple Accueil sur le site
+* Explication rapide
+
+---
+
+
+# 9. Page index.html (page des masters)
+
+Fonctionnalités :
+
+* Explication détaillé de chaque masters
+* Masters similaires
+
+# 10. Maintenance
+
+## 10.1. Ajouter une année (2025…)
 
 1. Ajouter CSV dans** **`/data`
 2. Ajouter un mapping dans** **`buildColumnMap(headers, year)`
 3. Vérifier les colonnes statiques
 4. Tester** **`/api/master/:id/2025`
 
-## 8.2. Modifier les styles
+## 10.2. Modifier les styles
 
 `/styles/main.css`
 
-## 8.3. Modifier les graphiques
+## 10.3. Modifier les graphiques
 
 `/module/VizManager.js`
 
-## 8.4. Modifier les comportements
+## 10.4. Modifier les comportements
 
 `/module/Orchestrator.js`
 
-# 9. Liens importants
+# 11. Liens importants
 
 **Dépôt GitHub**
 [https://github.com/Shii0te/SAE301-303.git](https://github.com/Shii0te/SAE301-303.git)

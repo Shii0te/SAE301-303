@@ -19,10 +19,12 @@ const __dirname = path.dirname(__filename);
 app.use("/styles", express.static(path.join(__dirname, "..", "styles")));
 app.use("/module", express.static(path.join(__dirname, "..", "module")));
 app.use("/images", express.static(path.join(__dirname, "..", "images")));
+app.use("/components", express.static(path.join(__dirname, "..", "components")));
 
 // --- API ---
 app.use("/api/master", masterRoute);
 app.use("/api/search", searchRoute);
+
 
 // Route de test (santé du serveur)
 app.get("/api/health", (_, res) => {
