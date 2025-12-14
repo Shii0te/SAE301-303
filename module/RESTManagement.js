@@ -13,8 +13,8 @@ export async function getFicheMaster(formationId, mode = "simple") {
   let url;
 
   if (mode === "comparatif") {
-    // Exemple : /api/master/0900816NWNGL
-    url = `/api/master/${encodeURIComponent(formationId)}`;
+    // Exemple : /api/master/0900816NWNGL/comparatif
+    url = `/api/master/${encodeURIComponent(formationId)}/comparatif`;
   } else {
     // Exemple : /api/master/0900816NWNGL/2024
     url = `/api/master/${encodeURIComponent(formationId)}/${mode}`;

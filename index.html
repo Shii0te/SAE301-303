@@ -5,8 +5,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>MASTER+</title>
+  <title>MASTER+ Page Details Master</title>
   <link rel="stylesheet" href="/styles/main.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+
   <!-- JS PRINCIPAL -->
   <script type="module">
     import { main } from "/module/Orchestrator.js";
@@ -54,19 +57,69 @@
 
       </div>
     </section>
+    <h2 class="stats-title">Statistiques :</h2>
+    <div class="stats-nav">
+      <button id="stats-prev" aria-label="Vue précédente">‹</button>
+      <button id="stats-next" aria-label="Vue suivante">›</button>
+    </div>
+
+    <!-- ================= STATISTIQUES ================= -->
+    <section id="viz" class="stats view active">
 
 
-    <!-- ================== ZONES DYNAMIQUES ================== -->
-    <!-- <section class="infos-master" id="status" aria-live="polite"></section>  -->
-    <section id="viz">
+      <div class="stats-card">
+
+        <!-- Header -->
+        <div class="stats-header">
+          <h3>Taux d’admissions</h3>
+
+          <div class="stats-switch">
+            <button data-year="2024" class="active">2024</button>
+            <button data-year="2023">2023</button>
+          </div>
+        </div>
+
+
+
+
+        <div class="kpis" id="kpis"></div>
+
+        <div id="comparatif"></div>
+
+        <!-- <div class="gauge">
+          <svg id="gauge-svg" viewBox="0 0 200 120"></svg>
+          <strong id="gauge-value">—</strong>
+          <span id="gauge-label">Taux d’admissions</span>
+        </div> -->
+
+      </div>
+      </div>
+    </section>
+
+    <!-- ================= EVOLUTION ================= -->
+    <section id="evolution" class="view">
+      <h2>Évolution des admissions</h2>
+      <div class="chart-controls">
+        <div class="btn-group">
+          <button data-year="2023" class="active">2023</button>
+          <button data-year="2024">2024</button>
+        </div>
+
+        <!-- <div class="btn-group">
+          <button data-metric="can" class="active">Candidatures</button>
+          <button data-metric="acc">Admis</button>
+        </div> -->
+      </div>
+      <div id="chart-evolution" style="width:100%; height:350px;"></div>
+      <p id="chart-evolution-label" class="chart-evolution-label"></p>
 
     </section>
+    <!-- ================= SIMILAIRES ================= -->
 
     <section id="similaires-container">
       <h2>Masters similaires</h2>
       <ul id="similaires"></ul>
     </section>
-
 
   </main>
 

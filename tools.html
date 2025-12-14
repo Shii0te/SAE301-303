@@ -3,51 +3,48 @@
 
 <head>
   <meta charset="utf-8" />
-  <title>Recherche de Masters – MASTER+</title>
+  <title>MASTER+ - Page de recherche de Masters </title>
   <link rel="stylesheet" href="/styles/main.css" />
 </head>
 
 <body>
+  <!-- =========================================================================
+       HEADER
+  ========================================================================= -->
   <header>
     <nav>
-      <a href="/"><img src="./images/logo-alt.png" alt="logo master plus" width="150" /></a>
+      <a href="/">
+        <img src="./images/logo-alt.png" alt="logo master plus" width="150" />
+      </a>
       <ul>
-        <li>
-          <a href="/">Accueil</a>
-        </li>
-        <li>
-          <a id="active-page" href="/tools">Master</a>
-        </li>
+        <li><a href="/">Accueil</a></li>
+        <li><a id="active-page" href="/tools">Masters</a></li>
       </ul>
     </nav>
   </header>
-  <!-- ===== CONTENU PRINCIPAL ===== -->
-  <main class="tools-container">
-    <section class="tools-intro">
 
+  <!-- =========================================================================
+       CONTENU PRINCIPAL
+  ========================================================================= -->
+  <main class="tools-container">
+
+    <section class="tools-intro">
       <h1 class="tools-title">Rechercher un Master</h1>
       <p class="tools-description">
-        Tape quelques mots clés (ex : <strong>informatique paris</strong>) et choisis l’année.
-        Clique ensuite sur un résultat pour consulter sa fiche complète.
+        Tape quelques mots-clés (ex : <strong>informatique paris</strong>)
+        et clique sur un résultat pour consulter la fiche détaillée.
       </p>
 
       <div class="tools-search-wrapper">
 
-        <!-- Barre blanche arrondie -->
+        <!-- Barre de recherche -->
         <div class="tools-search-bar">
-          <img src="./images/loupe.png" width="22" class="search-icon">
-          <input id="q" placeholder="Rechercher un master…" />
+          <img src="./images/loupe.png" width="22" class="search-icon" alt="" />
+          <input id="q" type="search" placeholder="Rechercher un master…" autocomplete="off" />
         </div>
 
-        <!-- Ligne de filtres en dessous (comme la maquette) -->
+        <!-- Filtres visuels (optionnels / décoratifs) -->
         <div class="tools-filters">
-          <!-- Select année = vrai filtre, utilisé par le JS -->
-          <select id="annee" class="filter-chip filter-select">
-            <option value="2024">Année 2024</option>
-            <option value="2023">Année 2023</option>
-          </select>
-
-          <!-- Filtres visuels (facultatifs, décoratifs) -->
           <button type="button" class="filter-chip">Filtre X</button>
           <button type="button" class="filter-chip">Filtre X</button>
           <button type="button" class="filter-chip">Filtre X</button>
@@ -55,85 +52,86 @@
         </div>
 
         <!-- Bouton principal -->
-        <button id="btnSearch" class="tools-search-btn">Rechercher</button>
-
+        <button id="btnSearch" class="tools-search-btn">
+          Rechercher
+        </button>
       </div>
-
     </section>
+    <section class="resultats">
+      <!-- STATUS -->
+      <div id="status"></div>
 
-
-    <!-- STATUS -->
-    <div id="status" class="tools-status"></div>
-    <!-- RÉSULTATS -->
-    <ul id="results" class="tools-results"></ul>
-
+      <!-- RÉSULTATS -->
+      <ul id="results"></ul>
+    </section>
   </main>
 
-
-  <!-- ===== JAVASCRIPT ===== -->
+  <!-- =========================================================================
+       JAVASCRIPT
+  ========================================================================= -->
   <script type="module">
-    async function search(q, annee) {
-      const url = `/api/search?q=${encodeURIComponent(q)}&annee=${encodeURIComponent(annee)}`;
-      const res = await fetch(url);
+    window.addEventListener("load", handleSearch);
 
+    const input = document.querySelector("#q");
+    const btn = document.querySelector("#btnSearch");
+    const resultsBox = document.querySelector("#results");
+
+    async function search(q) {
+      const url = `/api/search?q=${encodeURIComponent(q)}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Recherche impossible");
       return res.json();
     }
 
-
-    function setStatus(msg, type = "info") {
+    function setStatus(msg = "", type = "info") {
       const s = document.querySelector("#status");
       s.textContent = msg;
       s.dataset.type = type;
     }
 
-    function renderResults(arr, limit = 200) {
-      const box = document.querySelector("#results");
-      if (!arr.length) {
-        box.innerHTML = `<p class="no-result">Aucun résultat pour cette recherche.</p>`;
+    function renderResults(list, limit = 200) {
+      if (!list.length) {
+        resultsBox.innerHTML =
+          `<p class="no-result">Aucun résultat pour cette recherche.</p>`;
         return;
       }
 
-      const shown = arr.slice(0, limit);
-
-      box.innerHTML = shown.map(r => `
-                <li class="result-card">
-                    <div class="card-header">
-                      <img src="https://monmaster.gouv.fr/api/logo/${r.uai}" class="logo-result" />
-                    </div>
-                    <strong>${r.mention}</strong>
-                    <small>${r.etab}</small>
-                    <a class="card-button" href="/master?id=${encodeURIComponent(r.id)}">
-                      <button>Voir la fiche</button>
-                    </a>
-                </li>
-            `).join("");
-
-      box.querySelectorAll(".copy").forEach(btn => {
-        btn.addEventListener("click", async () => {
-          await navigator.clipboard.writeText(btn.dataset.id);
-          setStatus("ID copié ✔️");
-        });
-      });
+      resultsBox.innerHTML = list.slice(0, limit).map(r => `
+        <li class="result-card">
+          <div class="card-header">
+            <img
+              src="https://monmaster.gouv.fr/api/logo/${r.uai}"
+              alt=""
+              class="logo-result"
+            />
+          </div>
+          <strong>${r.mention}</strong>
+          <small>${r.etab}</small>
+          <a class="card-button" href="/master?id=${encodeURIComponent(r.id)}">
+            <button>Voir la fiche</button>
+          </a>
+        </li>
+      `).join("");
     }
 
-    // Événement du bouton
-    document.querySelector("#btnSearch").addEventListener("click", async () => {
-      const q = document.querySelector("#q").value.trim();
-      const annee = document.querySelector("#annee").value;
-      setStatus("Recherche…");
-      const arr = await search(q, annee);
-      setStatus(`${arr.length} résultat(s) trouvé(s).`);
-      renderResults(arr, 200);
-    });
+    async function handleSearch() {
+      const q = input.value.trim();
 
-    // Chargement initial
-    window.addEventListener("DOMContentLoaded", async () => {
-      const annee = document.querySelector("#annee").value;
-      setStatus("Chargement des formations…");
-      const arr = await search("", annee);
-      setStatus(`${arr.length} formations listées (200 affichées).`);
-      renderResults(arr, 200);
+      setStatus("Recherche en cours…", "loading");
+
+      try {
+        const data = await search(q);
+        setStatus(`${data.length} résultat(s).`, "success");
+        renderResults(data);
+      } catch (err) {
+        console.error(err);
+        setStatus("Erreur lors de la recherche.", "error");
+      }
+    }
+
+    btn.addEventListener("click", handleSearch);
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter") handleSearch();
     });
   </script>
 
