@@ -1,0 +1,392 @@
+
+function kpiChip(label, value) {
+  return `
+    <div class="kpi-chip">
+      <span>${label}</span>
+      <strong>${value}</strong>
+    </div>
+  `;
+}
+
+function updateGauge(percent) {
+  const svg = document.getElementById("gauge-svg");
+  const valueEl = document.getElementById("gauge-value");
+  const pillEl = document.getElementById("gauge-pill");
+  if (!svg || !valueEl || !pillEl) return;
+
+  const p = Math.round(percent);
+  valueEl.textContent = p;
+  pillEl.textContent = `Taux d’admissions : ${p}%`;
+
+  svg.innerHTML = makeGaugeSVG(p);
+}
+
+function makeGaugeSVG(p) {
+  // géométrie simple (semi-cercle + aiguille) proche du rendu screenshot
+  const cx = 130, cy = 130, r = 95;
+  const start = -180;
+  const end = 0;
+  const angle = start + (p / 100) * 180;
+
+  const arc = (a0, a1) => {
+    const toXY = (a) => {
+      const rad = (Math.PI / 180) * a;
+      return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+    };
+    const p0 = toXY(a0);
+    const p1 = toXY(a1);
+    const large = (a1 - a0) > 180 ? 1 : 0;
+    return `M ${p0.x} ${p0.y} A ${r} ${r} 0 ${large} 1 ${p1.x} ${p1.y}`;
+  };
+
+  const bg = arc(start, end);
+  const fg = arc(start, angle);
+
+  // aiguille
+  const rad = (Math.PI / 180) * angle;
+  const nx = cx + (r - 25) * Math.cos(rad);
+  const ny = cy + (r - 25) * Math.sin(rad);
+
+  return `
+    <path d="${bg}" fill="none" stroke="#2d2d2d" stroke-width="10" stroke-linecap="round" opacity="0.25"></path>
+    <path d="${fg}" fill="none" stroke="#2d2d2d" stroke-width="10" stroke-linecap="round"></path>
+
+    <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#2d2d2d" stroke-width="4" stroke-linecap="round"></line>
+    <circle cx="${cx}" cy="${cy}" r="8" fill="#2d2d2d"></circle>
+
+    <!-- mini ticks light (optionnel mais donne le feeling) -->
+    ${Array.from({ length: 6 }).map((_, i) => {
+    const a = start + i * 36;
+    const rr0 = r - 8, rr1 = r - 18;
+    const rad2 = (Math.PI / 180) * a;
+    const x0 = cx + rr0 * Math.cos(rad2);
+    const y0 = cy + rr0 * Math.sin(rad2);
+    const x1 = cx + rr1 * Math.cos(rad2);
+    const y1 = cy + rr1 * Math.sin(rad2);
+    return `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="#2d2d2d" stroke-width="2" opacity="0.35"></line>`;
+  }).join("")}
+  `;
+}
+
+
+
+
+
+/** Génère un diagramme SVG comparant deux valeurs */
+function renderBars(groups) {
+  const W = 520, H = 220,
+    pad = 36, bw = 36,
+    gapBars = 18, gapGroups = 64;
+
+  const maxVal = Math.max(...groups.flatMap(g => [g.v23, g.v24]), 1);
+
+  const svg = groups.map((g, i) => {
+    const baseX = 60 + i * (bw * 2 + gapBars + gapGroups);
+
+    const bar23 = barRect(g.v23, maxVal, baseX, pad, bw, H);
+    const bar24 = barRect(g.v24, maxVal, baseX + bw + gapBars, pad, bw, H);
+
+    return `
+      ${bar23}
+      ${bar24}
+      <text x="${baseX + bw}" y="${H - pad + 18}">${g.label}</text>
+      <text x="${baseX + bw / 2}" y="${pad - 20}">2023</text>
+      <text x="${baseX + bw + gapBars + bw / 2}" y="${pad - 20}">2024</text>
+    `;
+  }).join("");
+
+  return `
+    <section class="diagrammes">
+      <div>Comparatif 2023 vs 2024</div>
+      <svg viewBox="0 0 ${W} ${H}" width="100%" height="260"><g>${svg}</g></svg>
+    </section>
+  `;
+}
+
+/** Génère un rectangle + valeur */
+function barRect(value, max, x, pad, bw, H) {
+  const h = Math.round((value / max) * (H - pad * 2));
+  const y = H - pad - h;
+
+  return `
+    <rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="6"></rect>
+    <text x="${x + bw / 2}" y="${y - 6}">${value}</text>
+  `;
+}
+
+function renderSimilarMasters(payload) {
+  const box = document.querySelector("#similaires");
+  if (!box) return;
+
+  const currentId = payload.formation_id; // toujours fiable
+  const discipline = payload.identite?.discipline || "";
+
+  if (!discipline) {
+    box.innerHTML = "<p>Aucune donnée pour trouver des masters similaires.</p>";
+    return;
+  }
+
+  // On prend un mot-clé exploitable comme ancre de similarité
+  const keyword = discipline.split(",")[0].split(" ")[0];
+
+  box.innerHTML = "<p>Recherche de masters similaires...</p>";
+
+  fetch(`/api/search?q=${encodeURIComponent(keyword)}&annee=2024`)
+    .then(res => res.json())
+    .then(list => {
+      const sims = list
+        .filter(m => m.id !== currentId)  // exclure le master actuel
+        .slice(0, 6);
+
+      if (!sims.length) {
+        box.innerHTML = "<p>Aucun master similaire trouvé.</p>";
+        return;
+      }
+
+      box.innerHTML = sims.map(m => `
+        <li class="result-card" onclick="location.href='/master?id=${m.id}'">
+          <div class="card-header">
+          <img src="https://monmaster.gouv.fr/api/logo/${m.uai}" class="logo-result"/>
+          </div>
+          <strong>${m.mention}</strong>
+          <small>${m.etab}</small>
+        </li>
+      `).join("");
+    })
+    .catch(err => {
+      console.error("SIMILAIRES ERROR:", err);
+      box.innerHTML = "<p>Erreur lors du chargement.</p>";
+    });
+}
+
+
+
+// ============================================================================
+//  EVOLUTION GRAPH 
+// ============================================================================
+let evolutionInterval = null;
+
+export function renderEvolutionTree(payload) {
+  const y23 = payload?.annees?.["2023"]?.stats?.candidatures || {};
+  const y24 = payload?.annees?.["2024"]?.stats?.candidatures || {};
+
+  const values = {
+    2023: { can: y23.n_can || 0, acc: y23.n_acc || 0 },
+    2024: { can: y24.n_can || 0, acc: y24.n_acc || 0 },
+  };
+
+  const chartDom = document.getElementById("chart-evolution");
+  if (!chartDom) return;
+
+  const myChart = echarts.init(chartDom);
+  const treeSymbol = "image:///images/bonhomme.svg";
+  const lineCount = 5;
+
+  function makeBushData(value, negative = false) {
+    const MAX_VISUAL = 120;
+
+    // facteur de compression
+    const visualValue = Math.min(value, MAX_VISUAL);
+    const ratio = visualValue / MAX_VISUAL;
+
+    const r = Math.max(6, ratio * 300); // taille contrôlée
+    const arr = [];
+
+    for (let i = 0; i < lineCount; i++) {
+      const dome =
+        (lineCount - Math.abs(i - lineCount / 2 + 0.5)) * r;
+
+      const sign = negative ? -1 : 1;
+
+      arr.push({
+        value: dome * sign * (i % 3 === 0 ? 1 : 0.9),
+        symbolOffset: i % 2 ? ["50%", 0] : undefined
+      });
+    }
+
+    return arr;
+  }
+
+
+  function getOption(value) {
+
+    const pos = makeBushData(value);
+    const neg = makeBushData(value, true);
+
+    return {
+      xAxis: { show: false, min: -2000, max: 2000 },
+      yAxis: {
+        type: "category",
+        data: Array.from({ length: lineCount }, (_, i) => i),
+        show: false
+      },
+      grid: { top: 20, bottom: 80 },
+      series: [
+        {
+          type: "pictorialBar",
+          symbol: treeSymbol,
+          symbolSize: [30, 55],
+          symbolRepeat: true,
+          data: pos
+        },
+        {
+          type: "pictorialBar",
+          symbol: treeSymbol,
+          symbolSize: [30, 55],
+          symbolRepeat: true,
+          data: neg
+        }
+      ]
+    };
+  }
+
+  const labelEl = document.getElementById("chart-evolution-label");
+
+  let currentYear = 2023;     // contrôlé par boutons
+  let currentMetric = "can";  // auto switch: can <-> acc
+
+  function update() {
+    const value = values[currentYear][currentMetric];
+    myChart.setOption(getOption(value), true);
+
+    if (labelEl) {
+      labelEl.textContent =
+        `${currentYear} — ${value} ${currentMetric === "can" ? "candidatures" : "admis"}`;
+    }
+  }
+
+  // ----------------------------
+  // Boutons année (si présents)
+  // ----------------------------
+  document.querySelectorAll("#evolution [data-year]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      currentYear = Number(btn.dataset.year);
+
+      // UI active
+      document.querySelectorAll("#evolution [data-year]").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      update(); // garde le metric courant (can/acc)
+    });
+  });
+
+  // ----------------------------
+  // Auto switch metric (3s)
+  // ----------------------------
+  if (evolutionInterval) clearInterval(evolutionInterval);
+  evolutionInterval = setInterval(() => {
+    currentMetric = currentMetric === "can" ? "acc" : "can";
+    update();
+  }, 3000);
+
+  // Init
+  update();
+
+  // Optionnel: si tu redimensionnes la fenêtre
+  window.addEventListener("resize", () => myChart.resize());
+}
+
+
+// ------------- version candidats-admis version boutons année & ad/cand ----------------------
+
+// export function renderEvolutionTree(payload) {
+//   const y23 = payload?.annees?.["2023"]?.stats?.candidatures || {};
+//   const y24 = payload?.annees?.["2024"]?.stats?.candidatures || {};
+
+//   const values = {
+//     2023: {
+//       can: y23.n_can || 0,
+//       acc: y23.n_acc || 0,
+//     },
+//     2024: {
+//       can: y24.n_can || 0,
+//       acc: y24.n_acc || 0,
+//     }
+//   };
+
+//   const chartDom = document.getElementById("chart-evolution");
+//   if (!chartDom) return;
+
+//   const myChart = echarts.init(chartDom);
+//   const treeSymbol = "image:///images/bonhomme.svg";
+//   const lineCount = 10;
+
+//   function makeBushData(value, negative = false) {
+//     const r = Math.max(6, value * 3);
+//     const arr = [];
+//     for (let i = 0; i < lineCount; i++) {
+//       const dome = (lineCount - Math.abs(i - lineCount / 2 + 0.5)) * r;
+//       const sign = negative ? -1 : 1;
+//       arr.push({
+//         value: dome * sign * (i % 3 === 0 ? 1 : 0.9),
+//         symbolOffset: i % 2 ? ["50%", 0] : undefined
+//       });
+//     }
+//     return arr;
+//   }
+
+//   function getOption(value) {
+//     const pos = makeBushData(value);
+//     const neg = makeBushData(value, true);
+
+//     return {
+//       xAxis: { show: false, min: -2000, max: 2000 },
+//       yAxis: {
+//         type: "category",
+//         data: Array.from({ length: lineCount }, (_, i) => i),
+//         show: false
+//       },
+//       grid: { top: 20, bottom: 80 },
+//       series: [
+//         {
+//           type: "pictorialBar",
+//           symbol: treeSymbol,
+//           symbolSize: [30, 55],
+//           symbolRepeat: true,
+//           data: pos
+//         },
+//         {
+//           type: "pictorialBar",
+//           symbol: treeSymbol,
+//           symbolSize: [30, 55],
+//           symbolRepeat: true,
+//           data: neg
+//         }
+//       ]
+//     };
+//   }
+
+//   const labelEl = document.getElementById("chart-evolution-label");
+
+//   let currentYear = 2023;
+//   let currentMetric = "can"; // can | acc
+
+//   function update() {
+//     const value = values[currentYear][currentMetric];
+//     myChart.setOption(getOption(value));
+//     labelEl.textContent =
+//       `${currentYear} — ${value} ${currentMetric === "can" ? "candidatures" : "admis"}`;
+//   }
+
+//   // INIT
+//   update();
+
+//   // ===== CONTROLS =====
+//   document.querySelectorAll("[data-year]").forEach(btn => {
+//     btn.addEventListener("click", () => {
+//       currentYear = Number(btn.dataset.year);
+//       document.querySelectorAll("[data-year]").forEach(b => b.classList.remove("active"));
+//       btn.classList.add("active");
+//       update();
+//     });
+//   });
+
+//   document.querySelectorAll("[data-metric]").forEach(btn => {
+//     btn.addEventListener("click", () => {
+//       currentMetric = btn.dataset.metric;
+//       document.querySelectorAll("[data-metric]").forEach(b => b.classList.remove("active"));
+//       btn.classList.add("active");
+//       update();
+//     });
+//   });
+// }

@@ -1,205 +1,692 @@
-// ============================================================================
-//  ICON TREE (Base64)
-// ============================================================================
-const treeDataURI =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAA2CAYAAADUOvnEAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA5tJREFUeNrcWE1oE0EUnp0kbWyUpCiNYEpCFSpIMdpLRTD15s2ePHixnj00N4/GoyfTg2fbiwdvvagHC1UQ66GQUIQKKgn1UAqSSFua38b3prPJZDs7s5ufKn0w7CaZ2W/fe9/73kyMRqNB3Nrj1zdn4RJ6du9T2u1a2iHYSxjP4d41oOHGQwAIwSUHIyh8/RA8XeiXh0kLGFoaXiTecw/hoTG4ZCSAaFkY0+BpsZceLtiAoV2FkepZSDk5EpppczBvpuuQCqx0YnkYcVVoqQYMyeCG+lFdaGkXeVOFNu4aEBalOBk6sbQrQF7gSdK5JXjuHXuYVIVyr0TZ0FjKDeCs6km7JYMUdrWAUVmZUBtmRnVPK+x6nIR2xomH06R35ggwJPeofWphr/W5UjPIxq8B2bKgE8C4HVHWvg+2gZjXj19PkdFztY7bk9TDCH/g6oafDPpaoMvZIRI5WyMB/0Hv++HkpTKE0kM+A+h20cPAfN4GuRyp9G+LMTW+z8rCLI8b46XO9zRcYZTde/j0AZm8WGb3Y2F9KLlE2nqYkjFLJAsDOl/lea0q55mqxXcL7YBc++bsCPMe8mUyU2ZIpnCoblca6TZA/ga2Co8PGg7UGUlEDd0ueptglbrRZLLE7poti6pCaWUo2pu1oaYI1CF9b9cCZPO3F8ikJQ/rPpQT5YETht26ss+uCIL2Y8vHwJGpA96GI5mjOlaKhowUy6BcNcgIhDviTGWCGFaqEuufWz4pgcbCh+w0gEOyOjTlTtYYlIWPYWKEsLDzOs+nhzaO1KEpd+MXpOoTUgKiNyhdy5aSMPNVqxtSsJFgza5EWA4zKtCJ2OGbLn0JSLu8+SL4G86p1Fpr7ABXdGFF/UTD4rfmFYFw4G9VAJ9SM3aF8l3yok4/J6IV9sDVb36ynmtJ2M5+CwxTYBdKNMBaocKGV2nYgkz6r+cHBP30MzAfi4Sy+BebSoPIOi8PW1PpCCvr/KOD4k9Zu0WSH0Y0+SxJ2awp/nlwKtcGyHOJ8vNHtRJzhPlsHr8MogtlVtwUU0tSM1x58upSKbfJnSKUR07GVMKkDNfXpzpv0RTHy3nZMVx5IOWdZIaPabGFvfpwpjnvfmJHXLaEvZUTseu/TeLc+xgAPhEAb/PbjO6PBaOTf6LQRh/dERde23zxLtOXbaKNhfq2L/1fAOPHDUhOpIf6485h7l+GNHHiSYPKE3Myz9sFxoJuAyazvwIMAItferha5LTqAAAAAElFTkSuQmCC';
-
-
-// ============================================================================
-//  TOP-LEVEL VizManager
-// ============================================================================
+// module/VizManager.js
+let genreChart = null;
+let genreInterval = null;
+let profilChart = null;
 
 
 export const VizManager = {
-
-  /* ============================================================================
-     RENDU COMPARATIF 2023 / 2024
-  ============================================================================ */
   renderComparatif(selector, payload) {
-
-
-    const root = document.querySelector(selector);
     const fiche = document.querySelector(".fiche-master");
-    if (!root || !fiche) return;
+    if (!fiche) return;
 
-    /* ======================= Données ======================= */
-    const y23 = payload?.annees?.["2023"]?.stats?.candidatures || {};
-    const y24 = payload?.annees?.["2024"]?.stats?.candidatures || {};
+    // ===== FICHE =====
+    fiche.querySelector("#nom-master").textContent =
+      payload?.identite?.discipline || "—";
+    fiche.querySelector("#infos").textContent =
+      payload?.identite?.etablissement || "—";
+    fiche.querySelector("#mention").textContent =
+      payload?.identite?.mention || "—";
 
-    const ncan23 = y23.n_can || 0;
-    const ncan24 = y24.n_can || 0;
-    const nacc23 = y23.n_acc || 0;
-    const nacc24 = y24.n_acc || 0;
-    const tx23 = y23.taux_adm || 0;
-    const tx24 = y24.taux_adm || 0;
+    // ===== CAROUSEL INIT =====
+    initStatsSliderAuto();
 
-    const delta = (a, b) => (a === 0 ? 0 : ((b - a) / a) * 100);
+    let currentYear = 2024;
 
-    /* ======================= Fiche Master ======================= */
-    fiche.querySelector("#nom-master").textContent = payload.identite?.discipline || "—";
-    fiche.querySelector("#infos").textContent = payload.identite?.etablissement || "—";
-    fiche.querySelector("#mention").textContent = payload.identite?.mention || "—";
+    const toNum = (v) => {
+      if (v === null || v === undefined) return 0;
+      const n = Number(String(v).replace(",", "."));
+      return Number.isFinite(n) ? n : 0;
+    };
 
-    const kpisBox = document.getElementById("kpis");
-    const chartBox = document.getElementById("comparatif");
-
-    if (!kpisBox || !chartBox) {
-      console.warn("Stats DOM manquant", { kpisBox, chartBox });
-      return;
+    function getYearData(year) {
+      const y = payload?.annees?.[String(year)]?.stats || {};
+      // pour l’instant: fallback sur candidatures (ton API actuelle)
+      return y.pp || y.candidatures || null;
     }
 
+    function normalizeStats(s) {
+      if (!s) return null;
 
-    // rendu initial (2024 par défaut)
-    renderStatsForYear(2024);
+      return {
+        // présents chez toi actuellement
+        n_can: toNum(s.n_can),
+        n_prop: toNum(s.n_prop),
+        n_acc: toNum(s.n_acc),
+        rang_dernier: toNum(s.rang_dernier),
 
-    function renderStatsForYear(year) {
-      const ncan = year === 2024 ? ncan24 : ncan23;
-      const nacc = year === 2024 ? nacc24 : nacc23;
-      const tx = year === 2024 ? tx24 : tx23;
-
-      kpisBox.innerHTML = `
-    ${kpi(`Candidatures ${year}`, ncan)}
-    ${kpi(`Admis ${year}`, nacc)}
-    ${kpi(`Taux d’admission`, (tx * 100).toFixed(1) + "%")}
-  `;
-
-      chartBox.innerHTML = renderBars([
-        { label: "Candidatures", v23: ncan23, v24: ncan24 },
-        { label: "Admis", v23: nacc23, v24: nacc24 }
-      ]);
+        // à venir côté backend (sinon = null => ND)
+        n_clas: ("n_clas" in s) ? toNum(s.n_clas) : null,
+        n_acc_femme: ("n_acc_femme" in s) ? toNum(s.n_acc_femme) : null,
+        pct_acc_acad: ("pct_acc_acad" in s) ? toNum(s.pct_acc_acad) : null,
+        pct_acc_reg: ("pct_acc_reg" in s) ? toNum(s.pct_acc_reg) : null,
+        profil_confirmes: s.profil_confirmes || null,
+      };
     }
 
-    document.querySelectorAll("#viz [data-year]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const year = Number(btn.dataset.year);
+    function renderAll() {
+      const raw = getYearData(currentYear);
+      const d = normalizeStats(raw);
+      if (!d) {
+        console.warn("Aucune donnée stats pour", currentYear, payload);
+        return;
+      }
+
+      renderChancePP(d, currentYear);      // Slide 1 ✅ fonctionne déjà
+      renderGenrePP(d, currentYear);       // Slide 2 (ND si backend pas prêt)
+      renderMobilitePP(d, currentYear);    // Slide 3 (ND si backend pas prêt)
+      renderProfilPP(d, currentYear);      // Slide 4 (ND si backend pas prêt)
+      renderSimilarMasters(payload)
+      renderDetailsPP(d, currentYear)
+
+    }
+
+    // ===== TOGGLE ANNÉE =====
+    document.querySelectorAll(".stats-switch--global [data-year]").forEach((btn) => {
+      btn.onclick = () => {
+        currentYear = Number(btn.dataset.year);
 
         document
-          .querySelectorAll("#viz [data-year]")
-          .forEach(b => b.classList.remove("active"));
+          .querySelectorAll(".stats-switch--global [data-year]")
+          .forEach((b) => b.classList.remove("active"));
 
-        btn.classList.add("active");
+        document
+          .querySelectorAll(`.stats-switch--global [data-year="${currentYear}"]`)
+          .forEach((b) => b.classList.add("active"));
 
-        renderStatsForYear(year);
-      });
-    });
-    renderSimilarMasters(payload);
-
-    renderEvolutionTree(payload);
-
-    function setActiveView(id) {
-      document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
-      const el = document.getElementById(id);
-      if (el) el.classList.add("active");
-    }
-
-    const views = ["viz", "evolution"];
-    let currentViewIndex = 0;
-
-    function showView(index) {
-      document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
-      document.getElementById(views[index])?.classList.add("active");
-    }
-
-    // boutons
-    document.getElementById("stats-prev")?.addEventListener("click", () => {
-      currentViewIndex =
-        (currentViewIndex - 1 + views.length) % views.length;
-      showView(currentViewIndex);
+        renderAll();
+      };
     });
 
-    document.getElementById("stats-next")?.addEventListener("click", () => {
-      currentViewIndex =
-        (currentViewIndex + 1) % views.length;
-      showView(currentViewIndex);
-    });
+    renderAll();
 
-    // init
-    showView(currentViewIndex);
-
-
-
-    /* ======================= Redirection MonMaster ======================= */
-    // Récupérer l'id de la formation depuis l'URL (?id=...)
+    // ===== MONMASTER =====
     const params = new URLSearchParams(window.location.search);
     const formationId = params.get("id");
-
     const btn = document.getElementById("btn-monmaster");
     if (btn) {
-      btn.addEventListener("click", () => {
-        if (!formationId) {
-          alert("Impossible d’ouvrir la page MonMaster : aucun id de formation dans l’URL.");
-          return;
-        }
+      btn.onclick = () => {
+        if (!formationId) return alert("Aucun id dans l’URL.");
+        window.open(
+          `https://monmaster.gouv.fr/formation?rechercheBrut=${encodeURIComponent(formationId)}`,
+          "_blank"
+        );
+      };
+    }
+  },
+};
 
-        const url = `https://monmaster.gouv.fr/formation?rechercheBrut=${encodeURIComponent(formationId)}`;
-        window.open(url, "_blank");
+// =============================================================================
+// FORMAT
+// =============================================================================
+function kpiChip(label, value) {
+  return `<div class="kpi-chip"><span>${label}</span><strong>${value}</strong></div>`;
+}
+
+function fmtInt(v) {
+  if (v === null || v === undefined) return "—";
+  const n = Number(v);
+  return Number.isFinite(n) ? n.toLocaleString("fr-FR") : "—";
+}
+
+function fmtPct(p) {
+  if (!Number.isFinite(p)) return "—";
+  return `${Math.round(p)}%`;
+}
+
+// =============================================================================
+// SLIDE 1 — CHANCE D’ADMISSION (PP)
+// =============================================================================
+function renderChancePP(d, year) {
+  const box = document.getElementById("kpis-chance");
+  const insight = document.getElementById("insight-chance");
+
+  const confirms = Number(d.n_can || 0);
+  const accepts = Number(d.n_acc || 0);
+  const pct = confirms ? (accepts / confirms) * 100 : 0;
+
+  if (box) {
+    box.innerHTML = [
+      kpiChip("Confirmés (PP)", fmtInt(confirms)),
+      kpiChip("Acceptés (PP)", fmtInt(accepts)),
+      kpiChip("Taux final", confirms ? fmtPct(pct) : "—"),
+    ].join("");
+  }
+
+  updateGauge(pct, `Taux d’admission : ${confirms ? fmtPct(pct) : "—"}`);
+
+  if (insight) {
+    if (!confirms) insight.textContent = "Données indisponibles.";
+    else insight.textContent = `En PP, ${Math.round(pct)}% des candidats confirmés ont été admis.`;
+  }
+}
+
+// =============================================================================
+// SLIDE 2 — FEMMES / HOMMES (PP)
+// =============================================================================
+
+function renderGenrePP(d) {
+  const box = document.getElementById("kpis-genre");
+  const root = document.getElementById("genre");
+  const insight = document.getElementById("insight-genre");
+  if (!root) return;
+
+  const total = Number(d.n_acc || 0);
+  const femmes =
+    d.n_acc_femme === null || d.n_acc_femme === undefined
+      ? null
+      : Number(d.n_acc_femme || 0);
+
+  // ND clair
+  if (!total || femmes === null) {
+    if (box) {
+      box.innerHTML = [
+        kpiChip("Total", fmtInt(total)),
+        kpiChip("Femmes", "ND"),
+        kpiChip("Hommes", "ND"),
+      ].join("");
+    }
+    root.innerHTML = `<p style="text-align:center;font-weight:700;color:#444;">Données femmes (acceptés) indisponibles.</p>`;
+    if (insight) insight.textContent = "";
+    if (genreChart) { genreChart.dispose(); genreChart = null; }
+    if (genreInterval) { clearInterval(genreInterval); genreInterval = null; }
+    return;
+  }
+
+  const hommes = Math.max(0, total - femmes);
+  const partFemmes = total ? (femmes / total) * 100 : 0;
+
+  // KPI : Total / Femmes / Hommes
+  if (box) {
+    box.innerHTML = [
+      kpiChip("Total", fmtInt(total)),
+      kpiChip("Femmes", fmtInt(femmes)),
+      kpiChip("Hommes", fmtInt(hommes)),
+    ].join("");
+  }
+
+  // Reset chart
+  if (genreChart) genreChart.dispose();
+  genreChart = echarts.init(root);
+
+  const symbol = "image:///images/bonhomme.svg";
+  const lineCount = 3;
+
+  function makeBushData(value, negative = false) {
+    const MAX_VISUAL = 120;
+    const visualValue = Math.min(value, MAX_VISUAL);
+    const ratio = MAX_VISUAL ? visualValue / MAX_VISUAL : 0;
+
+    const r = Math.max(6, ratio * 300);
+    const arr = [];
+
+    for (let i = 0; i < lineCount; i++) {
+      const dome = (lineCount - Math.abs(i - lineCount / 2 + 0.5)) * r;
+      const sign = negative ? -1 : 1;
+
+      arr.push({
+        value: dome * sign * (i % 3 === 0 ? 1 : 0.9),
+        symbolOffset: i % 2 ? ["50%", 0] : undefined
       });
     }
+    return arr;
+  }
+
+  const modes = [
+    { key: "complet", label: "acceptés", value: total, noun: "acceptés" },
+    { key: "femmes", label: "femmes acceptées", value: femmes, noun: "femmes acceptées" },
+    { key: "hommes", label: "hommes acceptés", value: hommes, noun: "hommes acceptés" },
+  ];
+
+  let modeIndex = 0;
+
+  function parityText() {
+    if (partFemmes >= 55) return "Majorité de femmes parmi les acceptés.";
+    if (partFemmes <= 45) return "Majorité d’hommes parmi les acceptés.";
+    return "Répartition proche de la parité.";
+  }
+
+  function viewText(mode) {
+    // "Vue : X femmes acceptées." / "Vue : X hommes acceptés." / "Vue : X acceptés."
+    if (mode.key === "complet") return `${total} acceptés. ${parityText()}`;
+    if (mode.key === "femmes") return `${femmes} femmes acceptées. ${parityText()}`;
+    return `${hommes} hommes acceptés. ${parityText()}`;
+  }
+
+  function getOption(mode) {
+    const pos = makeBushData(mode.value);
+    const neg = makeBushData(mode.value, true);
+
+    const maxAbs = Math.max(1, ...pos.map(o => Math.abs(o.value)));
+    const ax = Math.max(600, Math.ceil(maxAbs * 1.25));
+
+    return {
+      xAxis: { type: "value", show: false, min: -ax, max: ax },
+      yAxis: {
+        type: "category",
+        data: Array.from({ length: lineCount }, (_, i) => i),
+        show: false
+      },
+      grid: { top: 20, bottom: 20, left: 10, right: 10 },
+
+      series: [
+        { type: "pictorialBar", symbol, symbolSize: [30, 55], symbolRepeat: true, data: pos },
+        { type: "pictorialBar", symbol, symbolSize: [30, 55], symbolRepeat: true, data: neg }
+      ]
+    };
   }
 
 
+  function update() {
+    const mode = modes[modeIndex];
+    genreChart.setOption(getOption(mode), true);
 
-};
+    if (insight) insight.textContent = viewText(mode); // ✅ ici (à la place de "Majorité...")
+  }
 
 
-/* ============================================================================
-   TEMPLATES SIMPLES 
-============================================================================ */
+  if (genreInterval) clearInterval(genreInterval);
+  genreInterval = setInterval(() => {
+    modeIndex = (modeIndex + 1) % modes.length;
+    update();
+  }, 3000);
 
-/** Affiche un bloc KPI */
-function kpi(label, value) {
+  update();
+
+  if (!root.dataset.resizeBound) {
+    window.addEventListener("resize", () => genreChart && genreChart.resize());
+    root.dataset.resizeBound = "1";
+  }
+}
+
+
+// =============================================================================
+// SLIDE 3 — LOCAL / MOBILITÉ (PP)
+// =============================================================================
+function renderMobilitePP(d, year) {
+  const box = document.getElementById("kpis-mobilite");
+  const root = document.getElementById("mobilite");
+  const insight = document.getElementById("insight-mobilite");
+
+  const rawAcad = d.pct_acc_acad; // null => ND
+  const rawReg = d.pct_acc_reg;
+
+  const acad = (rawAcad === null) ? null : (rawAcad <= 1 ? rawAcad * 100 : rawAcad);
+  const reg = (rawReg === null) ? null : (rawReg <= 1 ? rawReg * 100 : rawReg);
+
+  if (box) {
+    box.innerHTML = [
+      kpiChip("Même académie", acad === null ? "ND" : fmtPct(acad)),
+      kpiChip("Même région", reg === null ? "ND" : fmtPct(reg)),
+      kpiChip("Base", "Acceptés (PP)"),
+    ].join("");
+  }
+
+  if (root) {
+    root.innerHTML = `
+      <div class="mob">
+        ${progressRow("Même académie", acad)}
+        ${progressRow("Même région académique", reg)}
+      </div>
+    `;
+  }
+
+  if (insight) {
+    if (acad === null && reg === null) insight.textContent = "Données de mobilité non disponibles pour cette année.";
+    else if ((reg ?? 0) >= 70) insight.textContent = "Recrutement plutôt local à l’échelle régionale.";
+    else insight.textContent = "Mobilité notable : une part importante vient d’autres régions.";
+  }
+}
+
+// =============================================================================
+// SLIDE 4 — PROFIL (OPTION)
+// =============================================================================
+function renderProfilPP(d, year) {
+  const box = document.getElementById("kpis-profil");
+  const root = document.getElementById("profil-chart");
+  const insight = document.getElementById("insight-profil");
+
+  const p = d.profil_confirmes;
+
+  // ND
+  if (!p || !root) {
+    if (box) box.innerHTML = kpiChip("Origine N-1", "ND");
+    if (root) root.innerHTML = `<p style="text-align:center;font-weight:700;color:#444;">Donnée indisponible.</p>`;
+    if (insight) insight.textContent = "";
+    if (profilChart) { profilChart.dispose(); profilChart = null; }
+    return;
+  }
+
+  // items
+  const items = [
+    { k: "lg3", label: "L3 gén." },
+    { k: "lp3", label: "LP" },
+    { k: "but3", label: "BUT3" },
+    { k: "master", label: "Master" },
+    { k: "autre", label: "Autre" },
+    { k: "noninscri", label: "Non-inscrit" },
+  ].map(x => ({ ...x, v: Number(p[x.k] || 0) }))
+    .filter(it => it.v > 0); // enlève les 0
+
+  const total = items.reduce((s, it) => s + it.v, 0);
+
+  // KPIs
+  if (box) {
+    box.innerHTML = [
+      kpiChip("Confirmés (PP)", fmtInt(Number(d.n_can || 0))),
+      kpiChip("Total profil", total ? fmtInt(total) : "—"),
+      kpiChip("Catégorie n°1", total ? items.slice().sort((a, b) => b.v - a.v)[0].label : "—"),
+    ].join("");
+  }
+
+  if (!total) {
+    root.innerHTML = `<p style="text-align:center;font-weight:700;color:#444;">Donnée indisponible.</p>`;
+    if (insight) insight.textContent = "";
+    if (profilChart) { profilChart.dispose(); profilChart = null; }
+    return;
+  }
+
+  // ECharts
+  if (profilChart) profilChart.dispose();
+  profilChart = echarts.init(root);
+
+  const top = items.slice().sort((a, b) => b.v - a.v)[0];
+  const topPct = Math.round((top.v / total) * 100);
+
+  const option = {
+    tooltip: { trigger: "item" },
+    legend: { top: "5%", left: "center" },
+    graphic: [
+      {
+        type: "text",
+        left: "center",
+        top: "42%",
+        style: {
+          text: `${topPct}%`,
+          font: "800 34px Poppins",
+          fill: "#2d2d2d",
+          textAlign: "center",
+        },
+      },
+      {
+        type: "text",
+        left: "center",
+        top: "58%",
+        style: {
+          text: top.label,
+          font: "600 12px Poppins",
+          fill: "#2d2d2d",
+          textAlign: "center",
+          opacity: 0.75,
+        },
+      },
+    ],
+    series: [
+      {
+        name: "Profil",
+        type: "pie",
+        radius: ["45%", "72%"],
+        avoidLabelOverlap: true,
+        padAngle: 3,
+        itemStyle: { borderRadius: 10 },
+        label: { show: false },
+        labelLine: { show: false },
+        data: items.map(it => ({ value: it.v, name: it.label })),
+      },
+    ],
+  };
+
+  profilChart.setOption(option, true);
+
+  if (insight) {
+    insight.textContent = `Vue : ${fmtInt(total)} confirmés (PP) répartis par origine N-1. Profil dominant : ${top.label} (${topPct}%).`;
+  }
+
+  if (!root.dataset.resizeBound) {
+    window.addEventListener("resize", () => profilChart && profilChart.resize());
+    root.dataset.resizeBound = "1";
+  }
+}
+
+// =============================================================================
+// SLIDE 5 — DÉTAILS (OPTION)
+// =============================================================================
+let detailsChart = null;
+
+// =============================================================================
+// SLIDE 5 — DÉTAILS (OPTION) — BAR CHART
+// =============================================================================
+function renderDetailsPP(d, year) {
+  const box = document.getElementById("kpis-details");
+  const insight = document.getElementById("insight-details");
+  const chartDom = document.getElementById("details-chart");
+
+  const classes = (d.n_clas === null) ? null : Number(d.n_clas || 0);
+  const rang = Number(d.rang_dernier || 0);
+
+  const ratio = (classes && classes > 0) ? (rang / classes) * 100 : null;
+
+  // KPIs
+  if (box) {
+    box.innerHTML = [
+      kpiChip("Classés (PP)", classes === null ? "ND" : fmtInt(classes)),
+      kpiChip("Dernier appelé (PP)", fmtInt(rang)),
+      kpiChip("Ratio appel / classés", ratio === null ? "ND" : fmtPct(ratio)),
+    ].join("");
+  }
+
+  // Insight
+  if (insight) {
+    if (classes === null) insight.textContent = "Détails avancés indisponibles (classés non fournis).";
+    else insight.textContent = "Lecture avancée : mouvement de liste et tension d’appel.";
+  }
+
+  // Chart (si pas de container -> stop)
+  if (!chartDom) return;
+
+  // Si ND -> on vide le chart
+  if (classes === null) {
+    if (detailsChart) { detailsChart.dispose(); detailsChart = null; }
+    chartDom.innerHTML = `<p style="text-align:center;font-weight:700;color:#444;">Graphique indisponible (ND).</p>`;
+    return;
+  }
+
+  // Init / reset chart
+  if (detailsChart) detailsChart.dispose();
+  detailsChart = echarts.init(chartDom);
+
+  // Bar values (on met ratio en %)
+  const labels = ["Classés (PP)", "Dernier appelé", "Ratio (%)"];
+  const values = [classes, rang, Math.round(ratio ?? 0)];
+
+  const option = {
+    grid: { top: 20, right: 20, bottom: 40, left: 50 },
+    xAxis: {
+      type: "category",
+      data: labels,
+      axisLabel: {
+        interval: 0,
+        formatter: (v) => (v.length > 14 ? v.replace(" (PP)", "\n(PP)") : v),
+      },
+    },
+    yAxis: { type: "value" },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: { type: "shadow" },
+      formatter: (params) => {
+        const p = params?.[0];
+        if (!p) return "";
+        const name = p.name;
+        const val = p.value;
+        if (name === "Ratio (%)") return `${name} : ${val}%`;
+        return `${name} : ${fmtInt(val)}`;
+      },
+    },
+    series: [
+      {
+        type: "bar",
+        data: values,
+        barMaxWidth: 44,
+        label: {
+          show: true,
+          position: "top",
+          formatter: (p) => (p.name === "Ratio (%)" ? `${p.value}%` : fmtInt(p.value)),
+        },
+      },
+    ],
+  };
+
+  detailsChart.setOption(option, true);
+
+  // Resize safe (1 seule fois)
+  if (!chartDom.dataset.resizeBound) {
+    window.addEventListener("resize", () => detailsChart && detailsChart.resize());
+    chartDom.dataset.resizeBound = "1";
+  }
+}
+
+
+// =============================================================================
+// UI HELPERS
+// =============================================================================
+function progressRow(label, pct) {
+  if (pct === null) {
+    return `
+      <div class="mob-row">
+        <div class="mob-label">${label}</div>
+        <div class="mob-bar"><div class="mob-fill" style="width:0%"></div></div>
+        <div class="mob-val">ND</div>
+      </div>
+    `;
+  }
+
+  const p = Math.max(0, Math.min(100, Number(pct || 0)));
   return `
-    <div>
-      <span>${label}</span>
-      <strong>${value}</strong>
+    <div class="mob-row">
+      <div class="mob-label">${label}</div>
+      <div class="mob-bar"><div class="mob-fill" style="width:${p}%"></div></div>
+      <div class="mob-val">${p.toFixed(0)}%</div>
     </div>
   `;
 }
 
+// =============================================================================
+// GAUGE (VITESSE)
+// =============================================================================
+function updateGauge(percent, pillText) {
+  const svg = document.getElementById("gauge-svg");
+  const valueEl = document.getElementById("gauge-value");
+  const pillEl = document.getElementById("gauge-pill");
+  if (!svg || !valueEl || !pillEl) return;
 
-/** Génère un diagramme SVG comparant deux valeurs */
-function renderBars(groups) {
-  const W = 520, H = 220,
-    pad = 36, bw = 36,
-    gapBars = 18, gapGroups = 64;
+  const p = Math.round(Math.max(0, Math.min(100, percent)));
+  valueEl.textContent = Number.isFinite(percent) ? p : "—";
+  pillEl.textContent = pillText || `Taux d’admission : ${p}%`;
 
-  const maxVal = Math.max(...groups.flatMap(g => [g.v23, g.v24]), 1);
+  svg.innerHTML = makeGaugeSVG(p);
+}
 
-  const svg = groups.map((g, i) => {
-    const baseX = 60 + i * (bw * 2 + gapBars + gapGroups);
+function makeGaugeSVG(p) {
+  const cx = 130, cy = 130, r = 95;
+  const start = -180, end = 0;
+  const angle = start + (p / 100) * 180;
 
-    const bar23 = barRect(g.v23, maxVal, baseX, pad, bw, H);
-    const bar24 = barRect(g.v24, maxVal, baseX + bw + gapBars, pad, bw, H);
+  const toXY = (a, rr = r) => {
+    const rad = (Math.PI / 180) * a;
+    return { x: cx + rr * Math.cos(rad), y: cy + rr * Math.sin(rad) };
+  };
 
-    return `
-      ${bar23}
-      ${bar24}
-      <text x="${baseX + bw}" y="${H - pad + 18}">${g.label}</text>
-      <text x="${baseX + bw / 2}" y="${pad - 20}">2023</text>
-      <text x="${baseX + bw + gapBars + bw / 2}" y="${pad - 20}">2024</text>
-    `;
+  const arc = (a0, a1) => {
+    const p0 = toXY(a0);
+    const p1 = toXY(a1);
+    return `M ${p0.x} ${p0.y} A ${r} ${r} 0 0 1 ${p1.x} ${p1.y}`;
+  };
+
+  const bg = arc(start, end);
+  const fg = arc(start, angle);
+  const needle = toXY(angle, r - 25);
+
+  const ticks = Array.from({ length: 6 }).map((_, i) => {
+    const a = start + i * 36;
+    const p0 = toXY(a, r - 8);
+    const p1 = toXY(a, r - 18);
+    return `<line x1="${p0.x}" y1="${p0.y}" x2="${p1.x}" y2="${p1.y}" stroke="#2d2d2d" stroke-width="2" opacity="0.35"></line>`;
   }).join("");
 
   return `
-    <section class="diagrammes">
-      <div>Comparatif 2023 vs 2024</div>
-      <svg viewBox="0 0 ${W} ${H}" width="100%" height="260"><g>${svg}</g></svg>
-    </section>
+    <path d="${bg}" fill="none" stroke="#2d2d2d" stroke-width="10" stroke-linecap="round" opacity="0.25"></path>
+    <path d="${fg}" fill="none" stroke="#2d2d2d" stroke-width="10" stroke-linecap="round"></path>
+    ${ticks}
+    <line x1="${cx}" y1="${cy}" x2="${needle.x}" y2="${needle.y}" stroke="#2d2d2d" stroke-width="4" stroke-linecap="round"></line>
+    <circle cx="${cx}" cy="${cy}" r="8" fill="#2d2d2d"></circle>
   `;
 }
 
+// =============================================================================
+// CAROUSEL
+// =============================================================================
+function initStatsSliderAuto() {
+  const track = document.getElementById("stats-track");
+  const prev = document.getElementById("stats-prev");
+  const next = document.getElementById("stats-next");
+  const dots = document.getElementById("stats-dots");
+  if (!track || !prev || !next || !dots) return;
 
-/** Génère un rectangle + valeur */
-function barRect(value, max, x, pad, bw, H) {
-  const h = Math.round((value / max) * (H - pad * 2));
-  const y = H - pad - h;
+  // évite double bind si reload
+  if (track.dataset.ready === "1") return;
+  track.dataset.ready = "1";
 
-  return `
-    <rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="6"></rect>
-    <text x="${x + bw / 2}" y="${y - 6}">${value}</text>
-  `;
+  const slides = Array.from(track.querySelectorAll(".stats-slide"));
+  const slideCount = slides.length;
+
+  let index = 0;
+
+  dots.innerHTML = slides
+    .map((_, i) => `<button type="button" data-index="${i}" aria-label="Aller à la vue ${i + 1}"></button>`)
+    .join("");
+
+  function updateDots() {
+    Array.from(dots.children).forEach((b, i) =>
+      b.classList.toggle("active", i === index)
+    );
+  }
+
+  function go(i) {
+    index = (i + slideCount) % slideCount;
+    track.style.transform = `translateX(-${index * 100}%)`;
+    updateDots();
+  }
+
+  prev.addEventListener("click", () => go(index - 1));
+  next.addEventListener("click", () => go(index + 1));
+  dots.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-index]");
+    if (!btn) return;
+    go(Number(btn.dataset.index));
+  });
+
+  go(0);
 }
+// ==============================================================================================
+// MAPPING MASTER 
+// ==============================================================================================
+let selectedRegion = null;
 
+// Récupérer toutes les régions
+const regions = document.querySelectorAll('.region');
+
+// Ajouter un écouteur d'événement sur chaque région
+regions.forEach(region => {
+  region.addEventListener('click', function () {
+    const regionName = this.id;
+
+    // Réinitialiser toutes les régions en bleu
+    regions.forEach(r => {
+      r.classList.remove('region-red');
+      r.classList.add('region-blue');
+    });
+
+    // Mettre la région cliquée en rouge
+    this.classList.remove('region-blue');
+    this.classList.add('region-red');
+
+    selectedRegion = regionName;
+    console.log('Région sélectionnée:', regionName);
+  });
+});
+
+// ==============================================================================================
+// Master similaires
+// ==============================================================================================
 function renderSimilarMasters(payload) {
   const box = document.querySelector("#similaires");
   if (!box) return;
@@ -244,273 +731,3 @@ function renderSimilarMasters(payload) {
       box.innerHTML = "<p>Erreur lors du chargement.</p>";
     });
 }
-
-function renderMap(region) {
-  if (!window.simplemaps_countrymap) {
-    console.warn("SimpleMaps non chargé");
-    return;
-  }
-  if (!region) {
-    console.warn("Aucune région fournie pour la carte");
-    return;
-  }
-
-  const key = Object.keys(REGION_TO_CODE).find(k =>
-    region.toLowerCase().includes(k)
-  );
-
-  if (!key) {
-    console.warn("Région inconnue pour la carte :", region);
-    return;
-  }
-
-  const code = REGION_TO_CODE[key];
-
-  simplemaps_countrymap.hooks.ready = function () {
-
-    // Désactiver toutes les régions
-    for (const r in simplemaps_countrymap_mapdata.state_specific) {
-      simplemaps_countrymap_mapdata.state_specific[r].color = "#d0d0d0";
-    }
-
-    // Colorer la région cible
-    simplemaps_countrymap_mapdata.state_specific[code].color = "#e41f74";
-    simplemaps_countrymap_mapdata.state_specific[code].hover_color = "#2419c4ff";
-
-    simplemaps_countrymap.load();
-  };
-}
-
-
-// ============================================================================
-//  EVOLUTION GRAPH 
-// ============================================================================
-let evolutionInterval = null;
-
-export function renderEvolutionTree(payload) {
-  const y23 = payload?.annees?.["2023"]?.stats?.candidatures || {};
-  const y24 = payload?.annees?.["2024"]?.stats?.candidatures || {};
-
-  const values = {
-    2023: { can: y23.n_can || 0, acc: y23.n_acc || 0 },
-    2024: { can: y24.n_can || 0, acc: y24.n_acc || 0 },
-  };
-
-  const chartDom = document.getElementById("chart-evolution");
-  if (!chartDom) return;
-
-  const myChart = echarts.init(chartDom);
-  const treeSymbol = "image:///images/bonhomme.svg";
-  const lineCount = 5;
-
-  function makeBushData(value, negative = false) {
-    const MAX_VISUAL = 120;
-
-    // facteur de compression
-    const visualValue = Math.min(value, MAX_VISUAL);
-    const ratio = visualValue / MAX_VISUAL;
-
-    const r = Math.max(6, ratio * 300); // taille contrôlée
-    const arr = [];
-
-    for (let i = 0; i < lineCount; i++) {
-      const dome =
-        (lineCount - Math.abs(i - lineCount / 2 + 0.5)) * r;
-
-      const sign = negative ? -1 : 1;
-
-      arr.push({
-        value: dome * sign * (i % 3 === 0 ? 1 : 0.9),
-        symbolOffset: i % 2 ? ["50%", 0] : undefined
-      });
-    }
-
-    return arr;
-  }
-
-
-  function getOption(value) {
-
-    const pos = makeBushData(value);
-    const neg = makeBushData(value, true);
-
-    return {
-      xAxis: { show: false, min: -2000, max: 2000 },
-      yAxis: {
-        type: "category",
-        data: Array.from({ length: lineCount }, (_, i) => i),
-        show: false
-      },
-      grid: { top: 20, bottom: 80 },
-      series: [
-        {
-          type: "pictorialBar",
-          symbol: treeSymbol,
-          symbolSize: [30, 55],
-          symbolRepeat: true,
-          data: pos
-        },
-        {
-          type: "pictorialBar",
-          symbol: treeSymbol,
-          symbolSize: [30, 55],
-          symbolRepeat: true,
-          data: neg
-        }
-      ]
-    };
-  }
-
-  const labelEl = document.getElementById("chart-evolution-label");
-
-  let currentYear = 2023;     // contrôlé par boutons
-  let currentMetric = "can";  // auto switch: can <-> acc
-
-  function update() {
-    const value = values[currentYear][currentMetric];
-    myChart.setOption(getOption(value), true);
-
-    if (labelEl) {
-      labelEl.textContent =
-        `${currentYear} — ${value} ${currentMetric === "can" ? "candidatures" : "admis"}`;
-    }
-  }
-
-  // ----------------------------
-  // Boutons année (si présents)
-  // ----------------------------
-  document.querySelectorAll("#evolution [data-year]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      currentYear = Number(btn.dataset.year);
-
-      // UI active
-      document.querySelectorAll("#evolution [data-year]").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-
-      update(); // garde le metric courant (can/acc)
-    });
-  });
-
-  // ----------------------------
-  // Auto switch metric (3s)
-  // ----------------------------
-  if (evolutionInterval) clearInterval(evolutionInterval);
-  evolutionInterval = setInterval(() => {
-    currentMetric = currentMetric === "can" ? "acc" : "can";
-    update();
-  }, 3000);
-
-  // Init
-  update();
-
-  // Optionnel: si tu redimensionnes la fenêtre
-  window.addEventListener("resize", () => myChart.resize());
-}
-
-
-
-
-
-// ------------- version candidats-admis version boutons année & ad/cand ----------------------
-
-// export function renderEvolutionTree(payload) {
-//   const y23 = payload?.annees?.["2023"]?.stats?.candidatures || {};
-//   const y24 = payload?.annees?.["2024"]?.stats?.candidatures || {};
-
-//   const values = {
-//     2023: {
-//       can: y23.n_can || 0,
-//       acc: y23.n_acc || 0,
-//     },
-//     2024: {
-//       can: y24.n_can || 0,
-//       acc: y24.n_acc || 0,
-//     }
-//   };
-
-//   const chartDom = document.getElementById("chart-evolution");
-//   if (!chartDom) return;
-
-//   const myChart = echarts.init(chartDom);
-//   const treeSymbol = "image:///images/bonhomme.svg";
-//   const lineCount = 10;
-
-//   function makeBushData(value, negative = false) {
-//     const r = Math.max(6, value * 3);
-//     const arr = [];
-//     for (let i = 0; i < lineCount; i++) {
-//       const dome = (lineCount - Math.abs(i - lineCount / 2 + 0.5)) * r;
-//       const sign = negative ? -1 : 1;
-//       arr.push({
-//         value: dome * sign * (i % 3 === 0 ? 1 : 0.9),
-//         symbolOffset: i % 2 ? ["50%", 0] : undefined
-//       });
-//     }
-//     return arr;
-//   }
-
-//   function getOption(value) {
-//     const pos = makeBushData(value);
-//     const neg = makeBushData(value, true);
-
-//     return {
-//       xAxis: { show: false, min: -2000, max: 2000 },
-//       yAxis: {
-//         type: "category",
-//         data: Array.from({ length: lineCount }, (_, i) => i),
-//         show: false
-//       },
-//       grid: { top: 20, bottom: 80 },
-//       series: [
-//         {
-//           type: "pictorialBar",
-//           symbol: treeSymbol,
-//           symbolSize: [30, 55],
-//           symbolRepeat: true,
-//           data: pos
-//         },
-//         {
-//           type: "pictorialBar",
-//           symbol: treeSymbol,
-//           symbolSize: [30, 55],
-//           symbolRepeat: true,
-//           data: neg
-//         }
-//       ]
-//     };
-//   }
-
-//   const labelEl = document.getElementById("chart-evolution-label");
-
-//   let currentYear = 2023;
-//   let currentMetric = "can"; // can | acc
-
-//   function update() {
-//     const value = values[currentYear][currentMetric];
-//     myChart.setOption(getOption(value));
-//     labelEl.textContent =
-//       `${currentYear} — ${value} ${currentMetric === "can" ? "candidatures" : "admis"}`;
-//   }
-
-//   // INIT
-//   update();
-
-//   // ===== CONTROLS =====
-//   document.querySelectorAll("[data-year]").forEach(btn => {
-//     btn.addEventListener("click", () => {
-//       currentYear = Number(btn.dataset.year);
-//       document.querySelectorAll("[data-year]").forEach(b => b.classList.remove("active"));
-//       btn.classList.add("active");
-//       update();
-//     });
-//   });
-
-//   document.querySelectorAll("[data-metric]").forEach(btn => {
-//     btn.addEventListener("click", () => {
-//       currentMetric = btn.dataset.metric;
-//       document.querySelectorAll("[data-metric]").forEach(b => b.classList.remove("active"));
-//       btn.classList.add("active");
-//       update();
-//     });
-//   });
-// }

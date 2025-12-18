@@ -62,42 +62,78 @@ function buildColumnMap(headers, year) {
       id_parcours: H("inmp"),
       uai: H("eta_uai"),
 
+      // PP only (2023 global)
       n_can_pp: H("n_can"),
-      n_can_pc: null,
-      n_prop_total: H("n_prop"),
-      n_acc_total: H("n_accept"),
+      n_can_femme_pp: H("n_can_femme"),
+
+      n_clas_pp: H("n_clas"),
+      n_clas_femme_pp: H("n_clas_femme"),
+
+      n_prop_pp: H("n_prop"),
+      n_prop_femme_pp: H("n_prop_femme"),
+
+      n_acc_pp: H("n_accept"),
+      n_acc_femme_pp: H("n_accept_femme"),
+
       rang_pp: H("rang_dernier"),
+
+      // mobilité (parts)
+      pct_acc_acad_pp: H("pct_accept_acad"),
+      pct_acc_reg_pp: H("pct_accept_acad_reg"),
+
+      // profil N-1 sur confirmés (2023 : pas de BUT3 dans ton listing)
+      can_lg3_pp: H("n_can_lg3"),
+      can_lp3_pp: H("n_can_lp3"),
+      can_but3_pp: null, // ND 2023
+      can_master_pp: H("n_can_master"),
+      can_autre_pp: H("n_can_autre"),
+      can_noninscri_pp: H("n_can_noninscri"),
     };
   }
+
 
   // ===== MAPPING 2024 =====
   return {
     etab: H("Libellé de l'établissement"),
-
     mention: H("Intitulé de la mention"),
     parcours: H("Intitulé du parcours"),
-
     academie: H("Académie de l'établissement"),
     region: H("Région académique de l'établissement"),
-
-    discipline:
-      H("Discipline") ||                      // colonne texte
-      H("Discipline de la formation"),
+    discipline: H("Discipline") || H("Discipline de la formation"),
 
     id_formation: H("Identifiant de la formation"),
     id_mention: H("Identifiant navette de mention"),
     id_parcours: H("Identifiant navette de parcours"),
-
     uai: H("Identifiant de l'établissement"),
 
+    // ===== PP ONLY : Confirmés / Classés / Prop / Acceptés =====
     n_can_pp: H("Effectif de candidats ayant confirmé une candidature en phase principale"),
-    n_can_pc: H("Effectif de candidats ayant confirmé une candidature en phase complémentaire"),
+    n_can_femme_pp: H("Effectif de candidats ayant confirmé une candidature en phase principale - Dont effectif de femmes"),
 
-    n_prop_total: H("Effectif de candidats ayant reçu une proposition pour une candidature formulée en phase principale"),
-    n_acc_total: H("Effectif de candidats ayant accepté une proposition d'admission pour une candidature formulée en phase principale"),
+    n_clas_pp: H("Effectif de candidats classés sur une candidature formulée en phase principale"),
+    n_clas_femme_pp: H("Effectif de candidats classés sur une candidature formulée en phase principale - Dont effectif de femmes"),
+
+    n_prop_pp: H("Effectif de candidats ayant reçu une proposition pour une candidature formulée en phase principale"),
+    n_prop_femme_pp: H("Effectif de candidats ayant reçu une proposition pour une candidature formulée en phase principale - Dont effectif de femmes"),
+
+    n_acc_pp: H("Effectif de candidats ayant accepté une proposition d'admission pour une candidature formulée en phase principale"),
+    n_acc_femme_pp: H("Effectif de candidats ayant accepté une proposition d'admission pour une candidature formulée en phase principale - Dont effectif de femmes"),
 
     rang_pp: H("Rang du dernier appelé en phase principale"),
+
+    // ===== mobilité : on essaie en "Part ..." si dispo, sinon on fallback plus tard =====
+    pct_acc_acad_pp: H("Part des candidats parmi ceux ayant accepté une proposition d'admission pour une candidature formulée en phase principale ou en phase complémentaire issus de la même académie (à partir du lieu de formation)"),
+    pct_acc_reg_pp: H("Part des candidats parmi ceux ayant accepté une proposition d'admission pour une candidature formulée en phase principale ou en phase complémentaire issus de la même région académique (à partir du lieu de formation)"),
+
+    // ===== profil N-1 (confirmés PP) =====
+    can_lg3_pp: H("Effectif de candidats en phase principale inscrits en troisième année de licence générale à la rentrée N-1"),
+    can_lp3_pp: H("Effectif de candidats en phase principale inscrits en licence professionnelle à la rentrée N-1"),
+    can_but3_pp: H("Effectif de candidats en phase principale inscrits en troisième année de bachelor universitaire de technologie à la rentrée N-1"),
+    can_master_pp: H("Effectif de candidats en phase principale inscrits en master à la rentrée N-1"),
+    can_autre_pp: H("Effectif de candidats en phase principale inscrits dans une autre formation à la rentrée N-1"),
+    can_noninscri_pp: H("Effectif de candidats en phase principale qui n'étaient pas inscrits dans un établissement d'enseignement supérieur en France à la rentrée N-1"),
   };
+
 }
 
 
@@ -146,9 +182,12 @@ export async function getMasterData(id, year) {
   const get = (key) => (K[key] ? row[K[key]] : "");
   const getNum = (key) => parseNum(get(key));
 
-  const n_pp = getNum("n_can_pp");
-  const n_pc = getNum("n_can_pc");
-  const n_can = n_pp + (n_pc || 0);
+  const n_can_pp = getNum("n_can_pp");
+  const n_clas_pp = getNum("n_clas_pp");
+  const n_prop_pp = getNum("n_prop_pp");
+  const n_acc_pp = getNum("n_acc_pp");
+
+  const n_acc_femme_pp = getNum("n_acc_femme_pp");
 
   return {
     formation_id: String(id),
@@ -163,14 +202,28 @@ export async function getMasterData(id, year) {
       uai: get("uai"),
     },
     stats: {
-      candidatures: {
-        n_can,
-        n_prop: getNum("n_prop_total"),
-        n_acc: getNum("n_acc_total"),
-        taux_adm: n_can ? getNum("n_acc_total") / n_can : 0,
+      pp: {
+        n_can: n_can_pp,
+        n_clas: n_clas_pp,
+        n_prop: n_prop_pp,
+        n_acc: n_acc_pp,
         rang_dernier: getNum("rang_pp"),
-      },
-    },
+
+        n_acc_femme: n_acc_femme_pp,
+
+        pct_acc_acad: getNum("pct_acc_acad_pp"),     // 0 si absent
+        pct_acc_reg: getNum("pct_acc_reg_pp"),       // 0 si absent
+
+        profil_confirmes: {
+          lg3: getNum("can_lg3_pp"),
+          lp3: getNum("can_lp3_pp"),
+          but3: getNum("can_but3_pp"),
+          master: getNum("can_master_pp"),
+          autre: getNum("can_autre_pp"),
+          noninscri: getNum("can_noninscri_pp"),
+        },
+      }
+    }
   };
 }
 
