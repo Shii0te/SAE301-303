@@ -12,7 +12,6 @@ coverage/
 .DS_Store
 
 # Données lourdes / temporaires
-data/*.csv
 data/*.parquet
 data/*.jsonl
 
