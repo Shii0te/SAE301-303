@@ -23,8 +23,8 @@
         <img src="./images/logo-alt.png" alt="logo master plus" width="150" />
       </a>
       <ul>
-        <li><a href="/">Accueil</a></li>
-        <li><a id="active-page" href="/tools">Masters</a></li>
+        <li><a href="/"><button class="btn-primary">Accueil</button ></a></li>
+        <li><a id="active-page" href="/tools"><button class="btn-primary">Masters</button></a></li>
       </ul>
     </nav>
   </header>
@@ -112,7 +112,7 @@
           <strong>${r.mention}</strong>
           <small>${r.etab}</small>
           <a class="card-button" href="/master?id=${encodeURIComponent(r.id)}">
-            <button>Voir la fiche</button>
+            <button class="btn-primary">Voir la fiche</button>
           </a>
         </li>
       `).join("");

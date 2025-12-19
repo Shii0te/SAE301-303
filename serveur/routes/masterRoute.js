@@ -49,3 +49,6 @@ masterRoute.get("/:id/comparatif", async (req, res) => {
 });
 
 export default masterRoute;
+
+// route de test region:
+

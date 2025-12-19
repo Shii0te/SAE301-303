@@ -16,6 +16,8 @@ export const VizManager = {
       payload?.identite?.etablissement || "—";
     fiche.querySelector("#mention").textContent =
       payload?.identite?.mention || "—";
+    setSelectedRegionFromData(payload?.identite?.region);
+
 
     // ===== CAROUSEL INIT =====
     initStatsSliderAuto();
@@ -154,7 +156,7 @@ function renderChancePP(d, year) {
 // SLIDE 2 — FEMMES / HOMMES (PP)
 // =============================================================================
 
-function renderGenrePP(d) {
+function renderGenrePP(d,year) {
   const box = document.getElementById("kpis-genre");
   const root = document.getElementById("genre");
   const insight = document.getElementById("insight-genre");
@@ -442,9 +444,6 @@ function renderProfilPP(d, year) {
 // =============================================================================
 let detailsChart = null;
 
-// =============================================================================
-// SLIDE 5 — DÉTAILS (OPTION) — BAR CHART
-// =============================================================================
 function renderDetailsPP(d, year) {
   const box = document.getElementById("kpis-details");
   const insight = document.getElementById("insight-details");
@@ -661,28 +660,50 @@ function initStatsSliderAuto() {
 // ==============================================================================================
 let selectedRegion = null;
 
-// Récupérer toutes les régions
-const regions = document.querySelectorAll('.region');
+// Tous les paths régions (ils ont id="Pays-de-la-Loire", etc.)
+const regions = document.querySelectorAll(".region");
 
-// Ajouter un écouteur d'événement sur chaque région
-regions.forEach(region => {
-  region.addEventListener('click', function () {
-    const regionName = this.id;
+function normalizeRegionName(name) {
+  return String(name || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/['’]/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/--+/g, "-");
+}
 
-    // Réinitialiser toutes les régions en bleu
-    regions.forEach(r => {
-      r.classList.remove('region-red');
-      r.classList.add('region-blue');
-    });
+const REGION_ALIAS = {
+  "collectivites-d-outre-mer": "outre-mer",
+  "la-reunion": "outre-mer",
+  "guadeloupe": "outre-mer",
+  "guyane": "outre-mer",
+  "martinique": "outre-mer",
+  "mayotte": "outre-mer"
+};
 
-    // Mettre la région cliquée en rouge
-    this.classList.remove('region-blue');
-    this.classList.add('region-red');
+export function setSelectedRegionFromData(regionLabel) {
+  if (!regionLabel) return;
 
-    selectedRegion = regionName;
-    console.log('Région sélectionnée:', regionName);
+  const normalized = normalizeRegionName(regionLabel);
+  const targetId = REGION_ALIAS[normalized] || normalized;
+
+  const regions = document.querySelectorAll(".region");
+
+  regions.forEach(r => {
+    r.classList.remove("region-red");
+    r.classList.add("region-blue");
   });
-});
+
+  const target = document.getElementById(targetId);
+  if (!target) {
+    console.warn("Région non trouvée dans le SVG :", regionLabel, "→", targetId);
+    return;
+  }
+
+  target.classList.remove("region-blue");
+  target.classList.add("region-red");
+}
 
 // ==============================================================================================
 // Master similaires

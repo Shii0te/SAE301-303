@@ -267,3 +267,28 @@ export async function getMasterComparatif(id) {
     },
   };
 }
+
+/* ============================================================================
+   API : LISTE DES RÉGIONS
+============================================================================ */
+
+export async function getRegions(year) {
+  year = Number(year);
+  await ensure(year);
+
+  const K = cache.cols.get(year);
+  const rows = cache.rows.get(year);
+
+  if (!K?.region) return [];
+
+  const regions = new Set();
+
+  for (const r of rows) {
+    const reg = r[K.region];
+    if (reg && reg.trim()) {
+      regions.add(reg.trim());
+    }
+  }
+
+  return Array.from(regions).sort();
+}
