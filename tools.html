@@ -11,6 +11,125 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
     rel="stylesheet">
+
+  <script type="module">
+    import { DOMAINES, matchDomain } from "./module/disciplineDomains.js";
+
+    const input = document.querySelector("#q");
+    const btn = document.querySelector("#btnSearch");
+    const resultsBox = document.querySelector("#results");
+    const filtersBox = document.querySelector("#domain-filters");
+
+    let allResults = [];
+    let activeDomain = "all";
+
+    /* ============================
+       API
+    ============================ */
+    document.querySelectorAll(".filter-chip")
+      .forEach(b => b.classList.remove("active"));
+
+    btn.classList.add("active");
+
+
+    async function search(q) {
+      const url = `/api/search?q=${encodeURIComponent(q)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Recherche impossible");
+      return res.json();
+    }
+
+    function setStatus(msg = "", type = "info") {
+      const s = document.querySelector("#status");
+      s.textContent = msg;
+      s.dataset.type = type;
+    }
+
+    /* ============================
+       RENDER
+    ============================ */
+    function renderResults(list, limit = 200) {
+      if (!list.length) {
+        resultsBox.innerHTML =
+          `<p class="no-result">Aucun résultat pour cette recherche.</p>`;
+        return;
+      }
+
+      resultsBox.innerHTML = list.slice(0, limit).map(r => `
+      <li class="result-card">
+        <div class="card-header">
+          <img src="https://monmaster.gouv.fr/api/logo/${r.uai}" class="logo-result" />
+        </div>
+        <strong>${r.mention}</strong>
+        <small>${r.etab}</small>
+        <a class="card-button" href="/master?id=${encodeURIComponent(r.id)}">
+          <button class="btn-primary">Voir la fiche</button>
+        </a>
+      </li>
+    `).join("");
+    }
+
+    /* ============================
+       FILTRES DOMAINES
+    ============================ */
+    filtersBox.innerHTML = DOMAINES.map(d => `
+    <button
+      class="filter-chip ${d.id === "all" ? "active" : ""}"
+      data-domain="${d.id}">
+      ${d.label}
+    </button>
+  `).join("");
+
+    filtersBox.addEventListener("click", e => {
+      const btn = e.target.closest("button[data-domain]");
+      if (!btn) return;
+
+      document.querySelectorAll(".filter-chip")
+        .forEach(b => b.classList.remove("active"));
+
+      btn.classList.add("active");
+      activeDomain = btn.dataset.domain;
+      applyFilters();
+    });
+
+    function applyFilters() {
+      let filtered = allResults;
+
+      if (activeDomain !== "all") {
+        filtered = allResults.filter(m =>
+          matchDomain(m.mention) === activeDomain
+        );
+      }
+
+      renderResults(filtered);
+    }
+
+    /* ============================
+       SEARCH
+    ============================ */
+    async function handleSearch() {
+      const q = input.value.trim();
+      setStatus("Recherche en cours…", "loading");
+
+      try {
+        allResults = await search(q);
+        setStatus(`${allResults.length} résultat(s).`, "success");
+        applyFilters();
+      } catch (err) {
+        console.error(err);
+        setStatus("Erreur lors de la recherche.", "error");
+      }
+    }
+
+    btn.addEventListener("click", handleSearch);
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter") handleSearch();
+    });
+
+    window.addEventListener("load", handleSearch);
+  </script>
+
+
 </head>
 
 <body>
@@ -23,7 +142,7 @@
         <img src="./images/logo-alt.png" alt="logo master plus" width="150" />
       </a>
       <ul>
-        <li><a href="/"><button class="btn-primary">Accueil</button ></a></li>
+        <li><a href="/"><button class="btn-primary">Accueil</button></a></li>
         <li><a id="active-page" href="/tools"><button class="btn-primary">Masters</button></a></li>
       </ul>
     </nav>
@@ -50,12 +169,7 @@
         </div>
 
         <!-- Filtres visuels (optionnels / décoratifs) -->
-        <div class="tools-filters">
-          <button type="button" class="filter-chip">Filtre X</button>
-          <button type="button" class="filter-chip">Filtre X</button>
-          <button type="button" class="filter-chip">Filtre X</button>
-          <button type="button" class="filter-chip">Filtre X</button>
-        </div>
+        <div class="tools-filters" id="domain-filters"></div>
 
         <!-- Bouton principal -->
         <button id="btnSearch" class="tools-search-btn active">Rechercher</button>
@@ -69,75 +183,6 @@
       <ul id="results"></ul>
     </section>
   </main>
-
-  <!-- =========================================================================
-       JAVASCRIPT
-  ========================================================================= -->
-  <script type="module">
-    window.addEventListener("load", handleSearch);
-
-    const input = document.querySelector("#q");
-    const btn = document.querySelector("#btnSearch");
-    const resultsBox = document.querySelector("#results");
-
-    async function search(q) {
-      const url = `/api/search?q=${encodeURIComponent(q)}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Recherche impossible");
-      return res.json();
-    }
-
-    function setStatus(msg = "", type = "info") {
-      const s = document.querySelector("#status");
-      s.textContent = msg;
-      s.dataset.type = type;
-    }
-
-    function renderResults(list, limit = 200) {
-      if (!list.length) {
-        resultsBox.innerHTML =
-          `<p class="no-result">Aucun résultat pour cette recherche.</p>`;
-        return;
-      }
-
-      resultsBox.innerHTML = list.slice(0, limit).map(r => `
-        <li class="result-card">
-          <div class="card-header">
-            <img
-              src="https://monmaster.gouv.fr/api/logo/${r.uai}"
-              alt=""
-              class="logo-result"
-            />
-          </div>
-          <strong>${r.mention}</strong>
-          <small>${r.etab}</small>
-          <a class="card-button" href="/master?id=${encodeURIComponent(r.id)}">
-            <button class="btn-primary">Voir la fiche</button>
-          </a>
-        </li>
-      `).join("");
-    }
-
-    async function handleSearch() {
-      const q = input.value.trim();
-
-      setStatus("Recherche en cours…", "loading");
-
-      try {
-        const data = await search(q);
-        setStatus(`${data.length} résultat(s).`, "success");
-        renderResults(data);
-      } catch (err) {
-        console.error(err);
-        setStatus("Erreur lors de la recherche.", "error");
-      }
-    }
-
-    btn.addEventListener("click", handleSearch);
-    input.addEventListener("keydown", e => {
-      if (e.key === "Enter") handleSearch();
-    });
-  </script>
 
 </body>
 

@@ -58,11 +58,11 @@ button {
     box-shadow .2s ease;
 }
 
-button:active{
+button:active {
   transform: translateY(1px);
 }
 
-button.stats-arrow{
+button.stats-arrow {
   transform: none;
   transition: none;
 }
@@ -134,6 +134,7 @@ button.stats-arrow{
   color: #fff;
   box-shadow: 0 .5rem 1.2rem rgba(228, 31, 116, .25);
 }
+
 
 /* ============================================================================
    BUTTON — GHOST / LINK
@@ -439,7 +440,7 @@ header nav ul {
   gap: .5rem;
 }
 
-.etab img{
+.etab img {
   filter: saturate(0) invert(1);
 }
 
@@ -452,6 +453,61 @@ header nav ul {
   width: 100%;
   max-width: 320px;
   text-align: center;
+}
+
+.formation-location {
+  line-height: 1.4;
+}
+
+.formation-location .etab {
+  font-size: 1.1rem;
+  margin-bottom: 0.2rem;
+}
+
+.formation-location .mention {
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.6rem;
+}
+
+.formation-location .street {
+  margin-bottom: 0;
+}
+
+.formation-location .city {
+  font-weight: 600;
+}
+
+.formation-location .fallback {
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.forma-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.forma-content .badge {
+  width: fit-content;
+  margin-bottom: 6px;
+}
+
+.socials {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.socials a {
+  font-weight: 600;
+  text-decoration: none;
+  opacity: 0.85;
+}
+
+.socials a:hover {
+  opacity: 1;
 }
 
 /* ============================================================================
@@ -547,17 +603,17 @@ header nav ul {
   background: var(--page-bg);
 }
 
-.stats h2{
+.stats h2 {
   text-align: center;
 }
 
 .stats-card {
   background: #fff;
   border-radius: var(--radius-md);
+  border: 1px solid #B7B7B7;
   max-width: 60rem;
   margin: 0 auto;
   padding: 1.5rem 4.5rem 1.5rem;
-  box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.08);
   position: relative;
 }
 
@@ -884,6 +940,106 @@ header nav ul {
   height: 280px;
 }
 
+/* attendus */
+
+
+.admission-title {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0 0 18px;
+}
+
+.accordion {
+  display: grid;
+  gap: 18px;
+}
+
+.acc-item {
+  border: 1px solid #B7B7B7;
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+  max-width: 60rem;
+  margin:auto;
+  width: 100%;
+}
+
+.acc-summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.acc-summary::-webkit-details-marker {
+  display: none;
+}
+
+.acc-chevron {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.acc-chevron::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 10px;
+  height: 10px;
+  border-right: 3px solid rgba(0, 0, 0, .45);
+  border-bottom: 3px solid rgba(0, 0, 0, .45);
+  transform: rotate(45deg);
+  transition: transform .2s ease;
+}
+
+.acc-item[open] .acc-chevron::before {
+  transform: rotate(-135deg);
+}
+
+.acc-content {
+  padding: 0 20px 18px;
+}
+
+.acc-list {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 10px;
+  color: rgba(0, 0, 0, .82);
+  line-height: 1.45;
+}
+
+.acc-empty {
+  margin: 8px 0 0;
+  color: rgba(0, 0, 0, .55);
+  font-style: italic;
+}
+
+
+
+/* Actif = couleur au clic */
+.filter-chip.active{
+  background: var(--primary-dark);
+  color: #fff;
+  border-color: var(--white);
+}
+
+
+/* Petit feedback au clic */
+.filter-chip:active{
+  transform: scale(0.98);
+}
+
+
 @media (max-width: 360px) {
   .btn-primary {
     width: 100%;
@@ -955,12 +1111,6 @@ header nav ul {
     justify-content: space-between;
   }
 
-  .stats-card {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 2.5rem 4rem;
-  }
-
   .kpis--chips {
     flex-direction: row;
   }
@@ -986,6 +1136,11 @@ header nav ul {
   .gauge-number {
     font-size: 3.2rem;
   }
+
+  .acc-item {
+    max-width: 900px;
+
+  }
 }
 
 @media (min-width: 1200px) {
@@ -1000,7 +1155,8 @@ header nav ul {
     margin: 0 auto;
   }
 
-  .stats-card {
+  .stats-card,
+  .acc-item {
     max-width: 1100px;
   }
 
@@ -1008,9 +1164,6 @@ header nav ul {
     grid-template-columns: repeat(6, 1fr);
   }
 
-  .stats-card {
-    max-width: 1100px;
-  }
 
   .kpis--chips {
     grid-template-columns: repeat(3, 1fr);

@@ -175,23 +175,26 @@ export async function getMasterData(id, year) {
 
   const K = cache.cols.get(year);
   const row = cache.ids.get(year).get(String(id).trim());
-
   if (!row)
     return { error: "Master non trouvé", id, year };
 
+  // ✅ définir get AVANT
   const get = (key) => (K[key] ? row[K[key]] : "");
   const getNum = (key) => parseNum(get(key));
+
+  // ✅ maintenant seulement on peut l’utiliser
+  const adresse = await fetchAdresseFromDataESRByUAI(get("uai"));
 
   const n_can_pp = getNum("n_can_pp");
   const n_clas_pp = getNum("n_clas_pp");
   const n_prop_pp = getNum("n_prop_pp");
   const n_acc_pp = getNum("n_acc_pp");
-
   const n_acc_femme_pp = getNum("n_acc_femme_pp");
 
   return {
     formation_id: String(id),
     annee: year,
+    adresse,
     identite: {
       etablissement: get("etab"),
       mention: get("mention"),
@@ -208,12 +211,9 @@ export async function getMasterData(id, year) {
         n_prop: n_prop_pp,
         n_acc: n_acc_pp,
         rang_dernier: getNum("rang_pp"),
-
         n_acc_femme: n_acc_femme_pp,
-
-        pct_acc_acad: getNum("pct_acc_acad_pp"),     // 0 si absent
-        pct_acc_reg: getNum("pct_acc_reg_pp"),       // 0 si absent
-
+        pct_acc_acad: getNum("pct_acc_acad_pp"),
+        pct_acc_reg: getNum("pct_acc_reg_pp"),
         profil_confirmes: {
           lg3: getNum("can_lg3_pp"),
           lp3: getNum("can_lp3_pp"),
@@ -226,6 +226,7 @@ export async function getMasterData(id, year) {
     }
   };
 }
+
 
 /* ============================================================================
    API : COMPARATIF 2023–2024
@@ -269,26 +270,47 @@ export async function getMasterComparatif(id) {
 }
 
 /* ============================================================================
-   API : LISTE DES RÉGIONS
+info supplémentaire data.govu
 ============================================================================ */
 
-export async function getRegions(year) {
-  year = Number(year);
-  await ensure(year);
+async function fetchAdresseFromDataESRByUAI(uai) {
+  if (!uai) return null;
 
-  const K = cache.cols.get(year);
-  const rows = cache.rows.get(year);
+  const url =
+    "https://data.enseignementsup-recherche.gouv.fr/api/records/1.0/search/?" +
+    new URLSearchParams({
+      dataset: "fr-esr-principaux-etablissements-enseignement-superieur",
+      q: uai,
+      rows: 1
+    });
 
-  if (!K?.region) return [];
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
 
-  const regions = new Set();
+    const json = await res.json();
+    const f = json?.records?.[0]?.fields;
+    if (!f) return null;
 
-  for (const r of rows) {
-    const reg = r[K.region];
-    if (reg && reg.trim()) {
-      regions.add(reg.trim());
-    }
+    return {
+      adresse: f.adresse_uai || "",
+      cp: f.code_postal_uai || "",
+      ville: f.com_nom || "",
+      lat: f.coordonnees?.[0] ?? null,
+      lon: f.coordonnees?.[1] ?? null,
+
+      // 👇 NOUVEAU : infos établissement
+      type: f.type_d_etablissement || "",
+      secteur: f.secteur_d_etablissement || "",
+      site: f.url || "",
+      reseaux: {
+        instagram: f.compte_instagram || "",
+        linkedin: f.compte_linkedin || "",
+        twitter: f.compte_twitter || ""
+      }
+    };
+  } catch {
+    return null;
   }
-
-  return Array.from(regions).sort();
 }
+

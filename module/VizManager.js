@@ -67,8 +67,9 @@ export const VizManager = {
       renderGenrePP(d, currentYear);       // Slide 2 (ND si backend pas prêt)
       renderMobilitePP(d, currentYear);    // Slide 3 (ND si backend pas prêt)
       renderProfilPP(d, currentYear);      // Slide 4 (ND si backend pas prêt)
-      renderSimilarMasters(payload)
-      renderDetailsPP(d, currentYear)
+      renderSimilarMasters(payload);
+      renderDetailsPP(d, currentYear);
+      renderFormationLocation(payload);
 
     }
 
@@ -751,4 +752,52 @@ function renderSimilarMasters(payload) {
       console.error("SIMILAIRES ERROR:", err);
       box.innerHTML = "<p>Erreur lors du chargement.</p>";
     });
+}
+
+
+
+// ==============================================================================================
+// Infos Master
+// ==============================================================================================
+function cleanAdresse(adresse, cp, ville) {
+  if (!adresse) return "";
+  let out = adresse;
+
+  if (cp && ville) {
+    out = out.replace(new RegExp(`\\b${cp}\\s+${ville}\\b`, "i"), "");
+  }
+
+  return out.trim();
+}
+
+function renderFormationLocation(payload, year = 2024) {
+  const box = document.querySelector(".forma-content");
+  if (!box) return;
+
+  const i = payload.identite;
+  const a = payload?.annees?.[String(year)]?.adresse;
+
+  const street = a ? cleanAdresse(a.adresse, a.cp, a.ville) : null;
+
+  box.innerHTML = `
+    <div class="formation-location">
+      <p class="etab"><strong>${i?.etablissement || "—"}</strong></p>
+
+      ${i?.mention ? `<p class="mention">${i.mention}${i.parcours ? ` — ${i.parcours}` : ""}</p>` : ""}
+
+      ${
+        a
+          ? `
+            <p class="street">${street}</p>
+            <p class="city">${a.cp} ${a.ville}</p>
+          `
+          : `
+            <p class="fallback">
+              Académie : ${i?.academie || "—"}<br>
+              Région académique : ${i?.region || "—"}
+            </p>
+          `
+      }
+    </div>
+  `;
 }
