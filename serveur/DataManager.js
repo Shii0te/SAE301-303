@@ -203,6 +203,9 @@ export async function getMasterData(id, year) {
       region: get("region"),
       discipline: get("discipline"),
       uai: get("uai"),
+
+      // 👇 AJOUT OBLIGATOIRE
+      id_mention: get("id_mention"),
     },
     stats: {
       pp: {

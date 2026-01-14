@@ -603,11 +603,11 @@ header nav ul {
   background: var(--page-bg);
 }
 
-.stats h2 {
+.stats h2, .admis h2 {
   text-align: center;
 }
 
-.stats-card {
+.stats-card, #admission-details details {
   background: #fff;
   border-radius: var(--radius-md);
   border: 1px solid #B7B7B7;
@@ -1039,6 +1039,17 @@ header nav ul {
   transform: scale(0.98);
 }
 
+.admis details {
+  margin-top: 1rem !important;
+}
+
+.admis summary{
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  flex-direction: row-reverse;
+  gap: 2rem;
+}
 
 @media (max-width: 360px) {
   .btn-primary {
@@ -1119,7 +1130,7 @@ header nav ul {
     grid-template-columns: repeat(3, 1fr);
   }
 
-  .stats-card {
+  .stats-card, #admission-details details {
     padding: 2.5rem 4rem 3rem;
     max-width: 900px;
     margin: 0 auto;
@@ -1155,7 +1166,7 @@ header nav ul {
     margin: 0 auto;
   }
 
-  .stats-card,
+  .stats-card, #admission-details details,
   .acc-item {
     max-width: 1100px;
   }

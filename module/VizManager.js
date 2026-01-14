@@ -2,8 +2,6 @@
 let genreChart = null;
 let genreInterval = null;
 let profilChart = null;
-
-
 export const VizManager = {
   renderComparatif(selector, payload) {
     const fiche = document.querySelector(".fiche-master");
@@ -106,7 +104,87 @@ export const VizManager = {
       };
     }
   },
+  renderAdmissionDetails(admission) {
+    console.log("Admission MonMaster reçue :", admission);
+
+    const section = document.getElementById("admission-details");
+    if (!section) {
+      console.warn("Section #admission-details introuvable");
+      return;
+    }
+
+    section.style.display = "block";
+
+    // ✅ NORMALISATION ICI
+    const { attendus, criteres, criteresExamen } =
+      extractAdmissionData(admission);
+
+    fillAdmissionList("admission-attendus", attendus);
+    fillAdmissionList("admission-criteres", criteres);
+    fillAdmissionList("admission-modalites", criteresExamen);
+
+    console.log("Attendus:", attendus.length);
+    console.log("Critères:", criteres.length);
+    console.log("Modalités:", criteresExamen.length);
+
+  }
+
+
+
 };
+// VizManager.js
+
+function extractAdmissionData(admission) {
+  let attendus = [];
+  let criteres = [];
+  let criteresExamen = [];
+
+  // Cas 1 : données au niveau racine
+  if (admission.attendus || admission.criteres || admission.criteresExamen) {
+    attendus = admission.attendus || [];
+    criteres = admission.criteres || [];
+    criteresExamen = admission.criteresExamen || [];
+  }
+
+  // Cas 2 : données dans les parcours
+  if (Array.isArray(admission.s1Parcours) && admission.s1Parcours.length > 0) {
+    admission.s1Parcours.forEach(p => {
+      if (Array.isArray(p.attendus)) attendus.push(...p.attendus);
+      if (Array.isArray(p.criteres)) criteres.push(...p.criteres);
+      if (Array.isArray(p.criteresExamen)) criteresExamen.push(...p.criteresExamen);
+    });
+  }
+
+  return {
+    attendus: [...new Set(attendus)],
+    criteres: [...new Set(criteres)],
+    criteresExamen: [...new Set(criteresExamen)]
+  };
+}
+
+function renderList(selector, items) {
+  const container = document.querySelector(selector);
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  if (!items || items.length === 0) {
+    container.innerHTML = "<p class='acc-empty'>Information non communiquée</p>";
+    return;
+  }
+
+  const ul = document.createElement("ul");
+  ul.className = "acc-list";
+
+  items.forEach(text => {
+    const li = document.createElement("li");
+    li.textContent = text;
+    ul.appendChild(li);
+  });
+
+  container.appendChild(ul);
+}
+
 
 // =============================================================================
 // FORMAT
@@ -157,7 +235,7 @@ function renderChancePP(d, year) {
 // SLIDE 2 — FEMMES / HOMMES (PP)
 // =============================================================================
 
-function renderGenrePP(d,year) {
+function renderGenrePP(d, year) {
   const box = document.getElementById("kpis-genre");
   const root = document.getElementById("genre");
   const insight = document.getElementById("insight-genre");
@@ -713,46 +791,93 @@ function renderSimilarMasters(payload) {
   const box = document.querySelector("#similaires");
   if (!box) return;
 
-  const currentId = payload.formation_id; // toujours fiable
-  const discipline = payload.identite?.discipline || "";
+  const currentId = payload.formation_id;
+  const identite = payload.identite;
 
-  if (!discipline) {
-    box.innerHTML = "<p>Aucune donnée pour trouver des masters similaires.</p>";
+  if (!identite) {
+    box.innerHTML = "<p>Données insuffisantes.</p>";
     return;
   }
 
-  // On prend un mot-clé exploitable comme ancre de similarité
-  const keyword = discipline.split(",")[0].split(" ")[0];
+  box.innerHTML = "<p>Recherche de masters similaires…</p>";
 
-  box.innerHTML = "<p>Recherche de masters similaires...</p>";
-
-  fetch(`/api/search?q=${encodeURIComponent(keyword)}&annee=2024`)
+  fetch(`/api/search?annee=2024`)
     .then(res => res.json())
     .then(list => {
-      const sims = list
-        .filter(m => m.id !== currentId)  // exclure le master actuel
-        .slice(0, 6);
+      const scored = list
+        .filter(m => m.id !== currentId)
+        .map(m => {
+          let score = 0;
 
-      if (!sims.length) {
-        box.innerHTML = "<p>Aucun master similaire trouvé.</p>";
+          if (m.discipline === identite.discipline) score += 4;
+          if (m.mention === identite.mention) score += 3;
+          if (m.parcours && m.parcours === identite.parcours) score += 2;
+          if (m.region === identite.region) score += 1;
+          if (m.academie === identite.academie) score += 1;
+
+          return { ...m, score };
+        })
+        .sort((a, b) => b.score - a.score);
+
+      let results = [];
+
+      // helper pour ajouter sans doublon
+      function pushUnique(list, items) {
+        items.forEach(item => {
+          if (!list.find(r => r.id === item.id)) {
+            list.push(item);
+          }
+        });
+      }
+
+      // priorité haute → moyenne → basse
+      pushUnique(results, scored.filter(m => m.score >= 4));
+
+      if (results.length < 6) {
+        pushUnique(results, scored.filter(m => m.score === 3));
+      }
+
+      if (results.length < 6) {
+        pushUnique(results, scored.filter(m => m.score === 2));
+      }
+
+      if (results.length < 6) {
+        pushUnique(results, scored.filter(m => m.score === 1));
+      }
+
+      if (results.length < 6) {
+        pushUnique(
+          results,
+          scored.filter(m => m.score === 0)
+        );
+      }
+
+      // sécurité finale
+      results = results.slice(0, 6);
+
+
+
+      if (!results.length) {
+        box.innerHTML = "<p>Aucun master similaire pertinent.</p>";
         return;
       }
 
-      box.innerHTML = sims.map(m => `
-        <li class="result-card" onclick="location.href='/master?id=${m.id}'">
-          <div class="card-header">
-          <img src="https://monmaster.gouv.fr/api/logo/${m.uai}" class="logo-result"/>
-          </div>
-          <strong>${m.mention}</strong>
-          <small>${m.etab}</small>
-        </li>
-      `).join("");
+      box.innerHTML = results.map(m => `
+  <li class="result-card" onclick="location.href='/master?id=${m.id}'">
+    <div class="card-header">
+      <img src="https://monmaster.gouv.fr/api/logo/${m.uai}" class="logo-result"/>
+    </div>
+    <strong>${m.mention}</strong>
+    <small>${m.etab}</small>
+  </li>
+`).join("");
     })
     .catch(err => {
       console.error("SIMILAIRES ERROR:", err);
       box.innerHTML = "<p>Erreur lors du chargement.</p>";
     });
 }
+
 
 
 
@@ -785,19 +910,47 @@ function renderFormationLocation(payload, year = 2024) {
 
       ${i?.mention ? `<p class="mention">${i.mention}${i.parcours ? ` — ${i.parcours}` : ""}</p>` : ""}
 
-      ${
-        a
-          ? `
+      ${a
+      ? `
             <p class="street">${street}</p>
             <p class="city">${a.cp} ${a.ville}</p>
           `
-          : `
+      : `
             <p class="fallback">
               Académie : ${i?.academie || "—"}<br>
               Région académique : ${i?.region || "—"}
             </p>
           `
-      }
+    }
     </div>
   `;
+}
+
+
+function fillAdmissionList(id, items) {
+  const ul = document.getElementById(id);
+  if (!ul) return;
+
+  ul.innerHTML = "";
+
+  if (!Array.isArray(items) || items.length === 0) {
+    ul.innerHTML = "<li>Donnée non disponible</li>";
+    return;
+  }
+
+  items.forEach(block => {
+    if (!block) return;
+
+    // découpe sur retours ligne ou virgules
+    const parts = block
+      .split(/\n|,\s(?=[A-ZÉÈÀ])/)
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    parts.forEach(text => {
+      const li = document.createElement("li");
+      li.textContent = text;
+      ul.appendChild(li);
+    });
+  });
 }
