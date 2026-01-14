@@ -96,13 +96,17 @@
       let filtered = allResults;
 
       if (activeDomain !== "all") {
-        filtered = allResults.filter(m =>
+        filtered = filtered.filter(m =>
           matchDomain(m.mention) === activeDomain
         );
       }
 
-      renderResults(filtered);
+      // 🔥 DÉDOUBLONNAGE ICI
+      const uniqueResults = deduplicateMasters(filtered);
+
+      renderResults(uniqueResults);
     }
+
 
     /* ============================
        SEARCH
@@ -113,6 +117,7 @@
 
       try {
         allResults = await search(q);
+        allResults = deduplicateMasters(allResults);
         setStatus(`${allResults.length} résultat(s).`, "success");
         applyFilters();
       } catch (err) {
@@ -127,6 +132,23 @@
     });
 
     window.addEventListener("load", handleSearch);
+
+
+    function deduplicateMasters(list) {
+      const map = new Map();
+
+      list.forEach(m => {
+        const uai = String(m.uai || "").trim();
+        const inm = String(m.id || "").slice(0, 8); // INM MonMaster
+        const key = `${uai}_${inm}`;
+
+        if (!map.has(key)) {
+          map.set(key, m);
+        }
+      });
+
+      return Array.from(map.values());
+    }
   </script>
 
 

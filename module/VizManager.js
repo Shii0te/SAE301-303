@@ -787,6 +787,17 @@ export function setSelectedRegionFromData(regionLabel) {
 // ==============================================================================================
 // Master similaires
 // ==============================================================================================
+// ==============================================================================================
+// Master similaires — VERSION FINALE SANS DOUBLONS
+// ==============================================================================================
+
+function getMasterKey(m) {
+  // Clé unique fiable MonMaster = UAI + INM (8 caractères)
+  const uai = String(m.uai || "").trim();
+  const inm = String(m.inm || m.id || "").slice(0, 8);
+  return `${uai}_${inm}`;
+}
+
 function renderSimilarMasters(payload) {
   const box = document.querySelector("#similaires");
   if (!box) return;
@@ -804,6 +815,7 @@ function renderSimilarMasters(payload) {
   fetch(`/api/search?annee=2024`)
     .then(res => res.json())
     .then(list => {
+      // 1️⃣ Scoring
       const scored = list
         .filter(m => m.id !== currentId)
         .map(m => {
@@ -811,75 +823,61 @@ function renderSimilarMasters(payload) {
 
           if (m.discipline === identite.discipline) score += 4;
           if (m.mention === identite.mention) score += 3;
-          if (m.parcours && m.parcours === identite.parcours) score += 2;
+          if (m.parcours && identite.parcours && m.parcours === identite.parcours) score += 2;
           if (m.region === identite.region) score += 1;
           if (m.academie === identite.academie) score += 1;
 
           return { ...m, score };
-        })
-        .sort((a, b) => b.score - a.score);
+        });
 
+      // 2️⃣ Tri : score puis random léger (évite toujours les mêmes)
+      scored.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return Math.random() - 0.5;
+      });
+
+      // 3️⃣ Construction progressive sans doublons
       let results = [];
 
-      // helper pour ajouter sans doublon
-      function pushUnique(list, items) {
+      function pushUnique(items) {
         items.forEach(item => {
-          if (!list.find(r => r.id === item.id)) {
-            list.push(item);
+          const key = getMasterKey(item);
+          if (!results.some(r => getMasterKey(r) === key)) {
+            results.push(item);
           }
         });
       }
 
-      // priorité haute → moyenne → basse
-      pushUnique(results, scored.filter(m => m.score >= 4));
+      // Priorité haute → moyenne → basse
+      pushUnique(scored.filter(m => m.score >= 4));
+      if (results.length < 6) pushUnique(scored.filter(m => m.score === 3));
+      if (results.length < 6) pushUnique(scored.filter(m => m.score === 2));
+      if (results.length < 6) pushUnique(scored.filter(m => m.score === 1));
+      if (results.length < 6) pushUnique(scored); // fallback ultime
 
-      if (results.length < 6) {
-        pushUnique(results, scored.filter(m => m.score === 3));
-      }
-
-      if (results.length < 6) {
-        pushUnique(results, scored.filter(m => m.score === 2));
-      }
-
-      if (results.length < 6) {
-        pushUnique(results, scored.filter(m => m.score === 1));
-      }
-
-      if (results.length < 6) {
-        pushUnique(
-          results,
-          scored.filter(m => m.score === 0)
-        );
-      }
-
-      // sécurité finale
       results = results.slice(0, 6);
 
-
-
+      // 4️⃣ Affichage
       if (!results.length) {
         box.innerHTML = "<p>Aucun master similaire pertinent.</p>";
         return;
       }
 
       box.innerHTML = results.map(m => `
-  <li class="result-card" onclick="location.href='/master?id=${m.id}'">
-    <div class="card-header">
-      <img src="https://monmaster.gouv.fr/api/logo/${m.uai}" class="logo-result"/>
-    </div>
-    <strong>${m.mention}</strong>
-    <small>${m.etab}</small>
-  </li>
-`).join("");
+        <li class="result-card" onclick="location.href='/master?id=${m.id}'">
+          <div class="card-header">
+            <img src="https://monmaster.gouv.fr/api/logo/${m.uai}" class="logo-result" />
+          </div>
+          <strong>${m.mention}</strong>
+          <small>${m.etab}</small>
+        </li>
+      `).join("");
     })
     .catch(err => {
       console.error("SIMILAIRES ERROR:", err);
       box.innerHTML = "<p>Erreur lors du chargement.</p>";
     });
 }
-
-
-
 
 // ==============================================================================================
 // Infos Master
