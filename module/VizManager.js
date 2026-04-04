@@ -90,6 +90,21 @@ export const VizManager = {
 
     renderAll();
 
+    const container = document.getElementById("modalite");
+    if (container) {
+      const isAlternance = payload?.identite?.alternance;
+
+      container.innerHTML = "";
+
+      const li = document.createElement("li");
+      li.textContent = isAlternance
+        ? "Formation en alternance"
+        : "Formation continue";
+
+      container.appendChild(li);
+    }
+
+
     // ===== MONMASTER =====
     const params = new URLSearchParams(window.location.search);
     const formationId = params.get("id");
@@ -104,6 +119,7 @@ export const VizManager = {
       };
     }
   },
+
   renderAdmissionDetails(admission) {
     console.log("Admission MonMaster reçue :", admission);
 
@@ -950,5 +966,23 @@ function fillAdmissionList(id, items) {
       li.textContent = text;
       ul.appendChild(li);
     });
+  });
+}
+
+function renderModalities(list) {
+  const container = document.getElementById("modalite");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  if (!list.length) {
+    container.innerHTML = "<li>Donnée non disponible</li>";
+    return;
+  }
+
+  list.forEach(item => {
+    const li = document.createElement("li");
+    li.textContent = item;
+    container.appendChild(li);
   });
 }

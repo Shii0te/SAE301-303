@@ -61,6 +61,9 @@ function buildColumnMap(headers, year) {
       id_mention: H("inm"),
       id_parcours: H("inmp"),
       uai: H("eta_uai"),
+      alternance: H("Alternance"),
+
+
 
       // PP only (2023 global)
       n_can_pp: H("n_can"),
@@ -191,6 +194,14 @@ export async function getMasterData(id, year) {
   const n_acc_pp = getNum("n_acc_pp");
   const n_acc_femme_pp = getNum("n_acc_femme_pp");
 
+  const alternanceRaw = get("alternance");
+  const isAlternance = String(alternanceRaw).trim() === "1";
+
+  const modalites = isAlternance
+    ? ["CONTINUE", "ALTERNANCE"]
+    : ["CONTINUE"];
+
+
   return {
     formation_id: String(id),
     annee: year,
@@ -204,8 +215,9 @@ export async function getMasterData(id, year) {
       discipline: get("discipline"),
       uai: get("uai"),
 
-      // 👇 AJOUT OBLIGATOIRE
       id_mention: get("id_mention"),
+      alternance: isAlternance,
+
     },
     stats: {
       pp: {

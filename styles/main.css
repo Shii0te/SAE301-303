@@ -587,7 +587,11 @@ PAGE MASTER - FICHE HEADER
 .infos-master p {
     font-size: var(--text-base);
     opacity: 0.95;
+<<<<<<< HEAD
     margin-bottom: var(--space-sm);
+=======
+    margin-top: var(--space-sm);
+>>>>>>> fb3a825 (VF)
 }
 
 .infos-master strong {
@@ -627,7 +631,10 @@ FORMATION LOCATION (carte + mapping)
     background: var(--secondary);
     color: var(--white);
     padding: var(--space-sm) var(--space-2xl);
+<<<<<<< HEAD
     border-radius: var(--radius-md);
+=======
+>>>>>>> fb3a825 (VF)
     width: fit-content;
     font-size: var(--text-xl);
     margin-bottom: var(--space-xl);
@@ -704,6 +711,7 @@ FORMATION LOCATION (carte + mapping)
 .region-red {
     fill: var(--primary);
     filter: drop-shadow(0 4px 8px rgba(228, 31, 116, 0.4));
+<<<<<<< HEAD
     animation: pulse 2s ease-in-out infinite;
 }
 
@@ -717,6 +725,18 @@ FORMATION LOCATION (carte + mapping)
     50% {
         transform: scale(1.02);
     }
+=======
+}
+
+#modalite li{
+    padding: .5rem 1rem;
+    margin: 1rem 0;
+    background-color: var(--bg-page);
+    width: fit-content;
+    border-radius: var(--radius-xl);
+    color: var(--primary);
+    font-weight: 800;
+>>>>>>> fb3a825 (VF)
 }
 
 /* ============================================================================
@@ -1113,6 +1133,7 @@ MASTERS SIMILAIRES
     display: grid;
     grid-template-columns: 1fr;
     gap: var(--space-lg);
+<<<<<<< HEAD
     max-width: 1200px;
     margin: 0 auto;
 }
@@ -1235,6 +1256,129 @@ RESPONSIVE - DESKTOP (1024px+)
         grid-template-columns: repeat(3, 1fr);
     }
 
+=======
+    margin: 0 auto;
+}
+
+/* ============================================================================
+RESPONSIVE - TABLET (768px+)
+============================================================================*/
+@media (min-width: 768px) {
+
+    /* Layout */
+    section {
+        padding: var(--space-4xl) var(--space-xl);
+    }
+
+    /* Header nav */
+    header nav {
+        padding: var(--space-xl) var(--space-2xl);
+    }
+
+    header nav img {
+        width: 150px;
+    }
+
+    header nav ul {
+        gap: var(--space-lg);
+    }
+
+    /* Accueil hero */
+    .accueil-body header>div {
+        padding: var(--space-4xl) var(--space-xl);
+    }
+
+    /* Tools intro */
+    .tools-intro {
+        margin: var(--space-xl) auto;
+        max-width: 900px;
+        padding: var(--space-3xl);
+    }
+
+    /* Results grid */
+    #results {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Fiche master */
+    .fiche-content {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    #btn-monmaster {
+        width: auto;
+    }
+
+    /* Formation location */
+    .forma>div {
+        flex-direction: row;
+        align-items: flex-start;
+        gap: var(--space-3xl);
+    }
+
+    .forma-content {
+        flex: 1;
+    }
+
+    .svgmap {
+        flex-shrink: 0;
+        max-width: 400px;
+    }
+
+    /* Stats KPIs */
+    .kpis--chips {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    /* Mobilité */
+    .mob-row {
+        grid-template-columns: 200px 1fr 80px;
+        align-items: center;
+    }
+
+    .mob-val {
+        text-align: right;
+    }
+
+    /* Similaires */
+    #similaires {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    /* Arrows positioning */
+    .stats-arrow--prev {
+        left: -24px;
+    }
+
+    .stats-arrow--next {
+        right: -24px;
+    }
+
+}
+
+/* ============================================================================
+RESPONSIVE - DESKTOP (1024px+)
+============================================================================*/
+@media (min-width: 1024px) {
+
+    /* Container */
+    .container {
+        padding: 0 var(--space-xl);
+    }
+
+    /* Tools intro */
+    .tools-intro {
+        max-width: 1100px;
+    }
+
+    /* Results grid */
+    #results {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+>>>>>>> fb3a825 (VF)
     /* Stats card */
     .stats-card,
     .acc-item {
@@ -1311,7 +1455,11 @@ ANIMATIONS
 @keyframes fadeIn {
     from {
         opacity: 0;
+<<<<<<< HEAD
         transform: translateY(10px);
+=======
+        transform: translateY(-10px);
+>>>>>>> fb3a825 (VF)
     }
 
     to {
@@ -1322,4 +1470,8 @@ ANIMATIONS
 
 .fade-in {
     animation: fadeIn 400ms ease-out;
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> fb3a825 (VF)

@@ -45,8 +45,5 @@ app.get("/", (_, res) => {
   res.sendFile(path.join(__dirname, "..", "accueil.html"));
 });
 
-// --- Lancement du serveur ---
-app.listen(PORT, "0.0.0.0", () => {
-    console.log(`✅ Serveur lancé sur http://localhost:${PORT}`);
-});
-
+app.use(express.static(path.join(__dirname, "..")))
+app.listen(PORT, "0.0.0.0")
